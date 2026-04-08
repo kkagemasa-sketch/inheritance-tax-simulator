@@ -122,7 +122,7 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 </style>
 </head>
 <body>
-<div class="hdr"><div class="hdr-inner"><div><h1>相続税シミュレーター</h1><div class="sub">家族構成を入力 → 相続税を把握 → 節税プランを見える化</div></div><div class="right"><div>プルデンシャル生命保険</div><div><b>資産防衛プランニングツール</b></div></div></div></div>
+<div class="hdr"><div class="hdr-inner"><div><h1>相続税シミュレーター</h1><div class="sub">家族構成を入力 → 相続税を把握 → 節税プランを見える化</div></div><div class="right"><div><b>相続対策プランニングツール</b></div></div></div></div>
 <div class="wrap">
 <div class="grid2">
 <!-- === 左カラム === -->
@@ -240,6 +240,11 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div class="stat-box"><div class="sl">退職金非課税残枠</div><div class="sv" id="d-remain-death"></div></div>
 <div class="stat-box"><div class="sl">財産額合計(参考)</div><div class="sv" id="d-total-m2"></div></div>
 </div>
+<div id="sp-relief-box" style="display:none;background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:10px 12px;margin-bottom:8px">
+<div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:4px"><span style="color:#4b5563">相続税額（軽減前）</span><span style="font-weight:700;color:#6b7280" id="d-tax-before"></span></div>
+<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#1e40af;font-weight:600">配偶者の税額軽減</span><span style="font-weight:700;color:#1e40af" id="d-sp-relief"></span></div>
+<div style="font-size:10px;color:#6b7280;margin-top:4px">※法定相続分（または1.6億円）以下の取得分は非課税</div>
+</div>
 <div class="tax-big" id="tax-box"><div class="tb-label">推定相続税額（総額）</div><div class="tb-val" id="d-tax"></div><div class="tb-note" id="d-tax-note"></div></div>
 <div class="pie-wrap"><h4>財産内訳（相続税評価額ベース）</h4><canvas id="pie" width="320" height="170"></canvas><div class="pie-legend" id="pie-legend"></div></div>
 </div>
@@ -254,8 +259,8 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div id="tab0" class="grid2"><div>
 <div class="slider-group"><div class="slider-header"><label>年間贈与額</label><span id="d-gift-amt"></span></div><input type="range" id="sl-gift" min="110" max="500" step="10" value="110"><div class="slider-footer"><span>110万円（非課税限度）</span><span>500万円</span></div></div>
 <div class="slider-group"><div class="slider-header"><label>贈与期間</label><span id="d-gift-yr"></span></div><input type="range" id="sl-yr" min="1" max="30" value="10"><div class="slider-footer"><span>1年</span><span>30年</span></div></div>
-<div class="result-box amber-box"><div class="result-row"><span class="rk">合計贈与額</span><span class="rv" id="d-total-gift"></span></div><div class="result-row"><span class="rk">贈与後の相続税</span><span class="rv" id="d-after-gift"></span></div><hr><div class="result-total"><span class="rt-label">節税効果</span><span class="rt-val" id="d-gift-save"></span></div><div class="result-pct" id="d-gift-pct"></div></div>
-<div class="tip"><b>ポイント：</b>年間110万円以内の贈与は贈与税ゼロ。毎年継続で相続財産を計画的に圧縮できます。<br>⚠️ 相続開始前7年以内の贈与は遺産に加算されます（2024年改正）。</div>
+<div class="result-box amber-box"><div class="result-row"><span class="rk">合計贈与額</span><span class="rv" id="d-total-gift"></span></div><div class="result-row" id="clawback-row" style="display:none"><span class="rk" style="color:#ea580c">うち持ち戻し加算（7年以内）</span><span class="rv" style="color:#ea580c" id="d-clawback"></span></div><div class="result-row" id="eff-gift-row" style="display:none"><span class="rk" style="font-weight:600">実質的な贈与効果</span><span class="rv" style="font-weight:700" id="d-eff-gift"></span></div><div class="result-row"><span class="rk">贈与後の相続税</span><span class="rv" id="d-after-gift"></span></div><hr><div class="result-total"><span class="rt-label">節税効果</span><span class="rt-val" id="d-gift-save"></span></div><div class="result-pct" id="d-gift-pct"></div></div>
+<div class="tip"><b>ポイント：</b>年間110万円以内の贈与は贈与税ゼロ。毎年継続で相続財産を計画的に圧縮できます。<br>⚠️ <b>相続開始前7年以内の贈与は遺産に加算されます</b>（2024年改正）。上記の計算にはこの持ち戻しが反映済みです。</div>
 </div><div><h4 style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">贈与年数と相続税の推移</h4><canvas id="line-chart" width="500" height="260"></canvas></div></div>
 <div id="tab1" style="display:none" class="grid2"><div>
 <div class="ins-status"><h4>生命保険 非課税枠の状況</h4><div class="result-row"><span class="rk" id="d-ins-cap-label"></span><span class="rv" id="d-ins-cap"></span></div><div class="result-row"><span class="rk">既存の死亡保険金</span><span class="rv" id="d-ins-cur"></span></div><hr style="border:none;border-top:1px solid #bfdbfe;margin:6px 0 8px"><div class="result-total"><span class="rt-label" style="color:#1e40af">残り非課税枠</span><span class="rt-val" style="color:#1e3a8a" id="d-ins-remain"></span></div><div class="progress-bg"><div class="progress-fill" id="ins-bar"></div></div><div class="progress-labels"><span>使用済</span><span>非課税枠満枠</span></div></div>
@@ -275,7 +280,7 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 </div>
 </div>
 <div class="zero-msg" id="zero-msg" style="display:none"><h3>現時点では相続税は発生しません</h3><p id="d-zero-msg"></p></div>
-<div class="disclaimer"><b>免責事項: </b>本ツールは概算値です。小規模宅地等の特例・配偶者の税額軽減・2次相続・相続時精算課税等は考慮していません。正確な試算は税理士にご相談ください。養子の法定相続人算入は実子有=1人/実子無=2人が上限です（特別養子等の例外あり）。</div>
+<div class="disclaimer"><b>免責事項: </b>本ツールは概算値です。小規模宅地等の特例・2次相続・相続時精算課税等は考慮していません。配偶者の税額軽減は法定相続分での取得を前提に概算しています。正確な試算は税理士にご相談ください。養子の法定相続人算入は実子有=1人/実子無=2人が上限です（特別養子等の例外あり）。</div>
 </div>
 
 <script>
@@ -364,12 +369,21 @@ function getHeirs(){
   return{rank:rank,nh:nh,spSh:spSh,otSh:otSh,otCnt:otCnt,desc:desc,rankLabel:rankLabel,allCh:allCh,realCh:realCh,adoptCh:adoptCh,adoptCount:adoptCount,pa:pa,sib:sib};
 }
 
-function calcTax(taxable,h){
-  if(taxable<=0||h.nh===0)return 0;
-  var t=0;
-  if(h.spSh>0)t+=taxOn(taxable*h.spSh);
-  if(h.otCnt>0&&h.otSh>0)t+=taxOn(taxable*h.otSh/h.otCnt)*h.otCnt;
-  return t;
+function calcTax(taxable,h,applySpRelief){
+  if(taxable<=0||h.nh===0)return{total:0,spTax:0,otTax:0,spRelief:0,afterRelief:0};
+  var spTax=0,otTax=0;
+  if(h.spSh>0)spTax=taxOn(taxable*h.spSh);
+  if(h.otCnt>0&&h.otSh>0)otTax=taxOn(taxable*h.otSh/h.otCnt)*h.otCnt;
+  var total=spTax+otTax;
+  var spRelief=0;
+  if(applySpRelief&&h.spSh>0){
+    var spShare=taxable*h.spSh;
+    var limit=Math.max(16e7,taxable*h.spSh);
+    var reliefBase=Math.min(spShare,limit);
+    spRelief=Math.floor(total*(reliefBase/(taxable||1)));
+    spRelief=Math.min(spRelief,total);
+  }
+  return{total:total,spTax:spTax,otTax:otTax,spRelief:spRelief,afterRelief:total-spRelief};
 }
 
 function fmt(v){if(!v||v===0)return"0円";var a=Math.abs(v);if(a>=1e8)return(v/1e8).toFixed(2)+"億円";if(a>=1e4)return Math.round(v/1e4).toLocaleString()+"万円";return v.toLocaleString()+"円";}
@@ -395,7 +409,11 @@ function calc(){
 
   var net=realEstate+stocks+deposits+insT+deathT+loanCo+othAsset-debt;
   var taxable=Math.max(0,net-bd);
-  var curTax=calcTax(taxable,h);
+  var spOk=(S.spouse==="yes");
+  var curR=calcTax(taxable,h,spOk);
+  var curTax=curR.afterRelief;
+  var curTaxBefore=curR.total;
+  var spRelief=curR.spRelief;
 
   var remainIns=Math.max(0,insEx-insGross);
   var remainDeath=Math.max(0,deathEx-deathGross);
@@ -404,17 +422,24 @@ function calc(){
   var totalT=(S.hLT+S.hBT+S.bLT+S.bBT+S.oLT+S.oBT+S.csT+S.lsT+S.dpT+S.dbT+S.liT+S.lcT+S.oaT-S.dtT)*1e4;
 
   var tGift=S.giftYr*S.giftAmt*1e4;
-  var gTax=calcTax(Math.max(0,Math.max(0,net-tGift)-bd),h);
+  var clawbackYr=Math.min(S.giftYr,7);
+  var clawback=clawbackYr*S.giftAmt*1e4;
+  var effectiveGift=tGift-clawback;
+  var gNet=net-effectiveGift;
+  var gTax=calcTax(Math.max(0,Math.max(0,gNet)-bd),h,spOk).afterRelief;
 
   var effIns=Math.min(S.addIns*1e4,remainIns);
-  var iTax=calcTax(Math.max(0,Math.max(0,net-effIns)-bd),h);
+  var iTax=calcTax(Math.max(0,Math.max(0,net-effIns)-bd),h,spOk).afterRelief;
 
-  var cTax=calcTax(Math.max(0,Math.max(0,net-tGift-effIns)-bd),h);
+  var cNet=net-effectiveGift-effIns;
+  var cTax=calcTax(Math.max(0,Math.max(0,cNet)-bd),h,spOk).afterRelief;
 
   var tl=[];
   for(var i=0;i<=Math.min(S.giftYr,30);i++){
     var g=i*S.giftAmt*1e4;
-    tl.push(Math.round(calcTax(Math.max(0,Math.max(0,net-g)-bd),h)/1e4));
+    var cb=Math.min(i,7)*S.giftAmt*1e4;
+    var eg=g-cb;
+    tl.push(Math.round(calcTax(Math.max(0,Math.max(0,net-eg)-bd),h,spOk).afterRelief/1e4));
   }
 
   var breakdown=[
@@ -432,9 +457,11 @@ function calc(){
     {n:"その他",v:S.oaT*1e4,c:"#93c5fd"}
   ].filter(function(x){return x.v>0;});
 
-  return{h:h,nh:nh,insEx:insEx,deathEx:deathEx,bd:bd,net:net,taxable:taxable,curTax:curTax,
+  return{h:h,nh:nh,insEx:insEx,deathEx:deathEx,bd:bd,net:net,taxable:taxable,
+    curTax:curTax,curTaxBefore:curTaxBefore,spRelief:spRelief,
     remainIns:remainIns,remainDeath:remainDeath,totalM:totalM,totalT:totalT,
-    tGift:tGift,gTax:gTax,gSave:curTax-gTax,effIns:effIns,iTax:iTax,iSave:curTax-iTax,
+    tGift:tGift,clawback:clawback,effectiveGift:effectiveGift,
+    gTax:gTax,gSave:curTax-gTax,effIns:effIns,iTax:iTax,iSave:curTax-iTax,
     cTax:cTax,cSave:curTax-cTax,tl:tl,breakdown:breakdown};
 }
 
@@ -706,9 +733,15 @@ function update(){
   document.getElementById("d-remain-death").textContent=fmt(r.remainDeath);
   document.getElementById("d-total-m2").textContent=fmt(r.totalM);
 
+  var spBox=document.getElementById("sp-relief-box");
+  if(r.spRelief>0){
+    spBox.style.display="block";
+    document.getElementById("d-tax-before").textContent=fmt(r.curTaxBefore);
+    document.getElementById("d-sp-relief").textContent="▼"+fmt(r.spRelief);
+  }else{spBox.style.display="none";}
   var tb=document.getElementById("tax-box");tb.className=r.curTax>0?"tax-big tax-red":"tax-big tax-green";
   document.getElementById("d-tax").textContent=fmt(r.curTax);
-  document.getElementById("d-tax-note").textContent=r.curTax===0?"基礎控除内のため相続税は発生しません":"※配偶者の税額軽減・小規模宅地特例等の適用前の概算値";
+  document.getElementById("d-tax-note").textContent=r.curTax===0?"基礎控除内のため相続税は発生しません":(r.spRelief>0?"※配偶者の税額軽減適用後の概算値（小規模宅地特例等は未適用）":"※小規模宅地特例等の適用前の概算値");
   drawPie(r.breakdown);
 
   document.getElementById("sim-section").style.display=r.curTax>0?"block":"none";
@@ -723,6 +756,15 @@ function update(){
   document.getElementById("d-gift-amt").textContent=S.giftAmt.toLocaleString()+"万円/年";
   document.getElementById("d-gift-yr").textContent=S.giftYr+"年間";
   document.getElementById("d-total-gift").textContent=fmt(r.tGift);
+  if(r.clawback>0){
+    document.getElementById("clawback-row").style.display="flex";
+    document.getElementById("d-clawback").textContent="+"+fmt(r.clawback);
+    document.getElementById("eff-gift-row").style.display="flex";
+    document.getElementById("d-eff-gift").textContent=fmt(r.effectiveGift);
+  }else{
+    document.getElementById("clawback-row").style.display="none";
+    document.getElementById("eff-gift-row").style.display="none";
+  }
   document.getElementById("d-after-gift").textContent=fmt(r.gTax);
   document.getElementById("d-gift-save").textContent="▼"+fmt(r.gSave);
   document.getElementById("d-gift-pct").textContent="削減率 "+(r.curTax>0?(r.gSave/r.curTax*100).toFixed(1):0)+"%";
