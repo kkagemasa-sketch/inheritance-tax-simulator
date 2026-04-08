@@ -24,6 +24,7 @@ body{font-family:-apple-system,"Hiragino Sans","Noto Sans JP","Meiryo",sans-seri
 /* 質問ステップ */
 .q-step{margin-bottom:14px;padding:12px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;transition:all .2s}
 .q-step.hidden{display:none}
+.hidden{display:none!important}
 .q-step .q-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#1e3a8a;color:#fff;font-size:10px;font-weight:700;margin-right:6px;flex-shrink:0}
 .q-label{font-size:13px;font-weight:600;color:#1e293b;margin-bottom:8px;display:flex;align-items:center}
 .q-sub{font-size:11px;color:#6b7280;margin:-4px 0 8px 26px}
@@ -196,7 +197,7 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div class="q-label"><span class="q-num" id="q7-n">7</span>兄弟姉妹はいますか？</div>
 <div class="q-sub">死別を含む</div>
 <div class="btn-row" id="q7-btns"></div>
-<div class="num-row hidden" id="q7-num"></div>
+<div class="num-row hidden" id="q7-num" style="align-items:center"><span style="font-size:12px;margin-left:26px">人数</span><input type="number" id="q7-input" min="1" max="20" value="1" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
 </div>
 
 <!-- Q8 家族以外 -->
@@ -205,10 +206,8 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div class="q-sub">遺言による遺贈の対象者</div>
 <div class="btn-row" id="q8-btns"></div>
 <div class="hidden" id="q8-detail" style="margin-left:26px;margin-top:8px">
-<div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:4px">親族（六親等以内の血族・三親等以内の姻族）</div>
-<div class="num-row" id="q8-rel-num"></div>
-<div style="font-size:11px;font-weight:600;color:#374151;margin:8px 0 4px">親族以外</div>
-<div class="num-row" id="q8-nonrel-num"></div>
+<div class="num-row" style="align-items:center;margin-bottom:6px"><span style="font-size:12px">親族</span><input type="number" id="q8-rel-input" min="0" max="20" value="0" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
+<div class="num-row" style="align-items:center"><span style="font-size:12px">親族以外</span><input type="number" id="q8-nonrel-input" min="0" max="20" value="0" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
 </div>
 </div>
 
@@ -951,8 +950,11 @@ function buildUI(){
     [{v:true,l:"いる（死別含む）"},{v:false,l:"いない"}],
     S.siblings,function(v){S.siblings=v;if(!v)S.siblingsN=0;buildUI();update();});
   var q7n=document.getElementById("q7-num");
-  if(S.siblings)mkNumBtns(q7n,5,S.siblingsN,function(v){S.siblingsN=v;update();});
-  else{q7n.innerHTML="";q7n.classList.add("hidden");}
+  if(S.siblings){q7n.classList.remove("hidden");
+    var q7i=document.getElementById("q7-input");q7i.value=S.siblingsN||1;
+    q7i.oninput=function(){S.siblingsN=Math.max(1,parseInt(this.value)||1);update();};
+    if(!S.siblingsN)S.siblingsN=1;
+  }else{q7n.classList.add("hidden");}
 
   var q8=document.getElementById("q8");q8.classList.remove("hidden");
   document.getElementById("q8-n").textContent=spExist?8:stepN+4;
@@ -961,8 +963,10 @@ function buildUI(){
     S.outside,function(v){S.outside=v;if(!v){S.outsideRel=0;S.outsideNonRel=0;}buildUI();update();});
   var q8d=document.getElementById("q8-detail");
   if(S.outside){q8d.classList.remove("hidden");
-    mkNumBtns(document.getElementById("q8-rel-num"),5,S.outsideRel,function(v){S.outsideRel=v;update();});
-    mkNumBtns(document.getElementById("q8-nonrel-num"),5,S.outsideNonRel,function(v){S.outsideNonRel=v;update();});
+    var q8ri=document.getElementById("q8-rel-input");q8ri.value=S.outsideRel||0;
+    q8ri.oninput=function(){S.outsideRel=Math.max(0,parseInt(this.value)||0);update();};
+    var q8ni=document.getElementById("q8-nonrel-input");q8ni.value=S.outsideNonRel||0;
+    q8ni.oninput=function(){S.outsideNonRel=Math.max(0,parseInt(this.value)||0);update();};
   }else{q8d.classList.add("hidden");}
 
   var tabs=document.getElementById("tabs");tabs.innerHTML="";
