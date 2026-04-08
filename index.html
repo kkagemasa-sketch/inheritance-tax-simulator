@@ -490,10 +490,11 @@ function drawTree(h){
   if(S.spouseChildren)for(var i=0;i<S.spouseChildrenN;i++)kids.push("子"+(S.spouseChildrenN>1?(i+1):""));
   if(S.adopted)for(var i=0;i<S.adoptedN;i++)kids.push("養子"+(S.adoptedN>1?(i+1):""));
   var cy=200,maxK=Math.min(kids.length,5);
+  var midX=sp?(selfX+bw+cpx)/2:selfX+bw/2;
   if(maxK>0){
-    var tw=maxK*bw+(maxK-1)*8,sx2=selfX+bw/2-tw/2;
-    ln(selfX+bw/2,selfY+bh,selfX+bw/2,cy-8);
-    for(var i=0;i<maxK;i++){var kx=sx2+i*(bw+8);box(kx,cy,bw,bh,kids[i],isH1,false);ln(kx+bw/2,cy,selfX+bw/2,cy-8);}
+    var tw=maxK*bw+(maxK-1)*8,sx2=midX-tw/2;
+    ln(midX,selfY+bh,midX,cy-8);
+    for(var i=0;i<maxK;i++){var kx=sx2+i*(bw+8);box(kx,cy,bw,bh,kids[i],isH1,false);ln(kx+bw/2,cy,midX,cy-8);}
     if(kids.length>5){ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.textAlign="left";ctx.fillText("他"+(kids.length-5)+"人",sx2+maxK*(bw+8),cy+bh/2+3);}
   }
   if(S.outside&&(S.outsideRel+S.outsideNonRel>0)){
