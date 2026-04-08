@@ -117,6 +117,18 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 .hero-box .hb-pct{font-size:12px;color:#6b7280;margin-top:4px}
 .tip-term{border-bottom:1px dotted #93c5fd;cursor:help;position:relative}
 .tip-term:hover::after{content:attr(data-tip);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;font-size:10px;font-weight:400;padding:6px 10px;border-radius:6px;white-space:nowrap;z-index:10;margin-bottom:4px;max-width:280px;white-space:normal;line-height:1.5}
+/* 遺産分割 */
+.split-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
+.split-tbl th{background:#f8fafc;border-bottom:2px solid #e2e8f0;padding:6px 4px;font-weight:700;color:#374151;font-size:11px;text-align:center}
+.split-tbl th:first-child{text-align:left;padding-left:8px}
+.split-tbl td{padding:5px 4px;border-bottom:1px solid #f1f5f9;text-align:right;font-size:12px}
+.split-tbl td:first-child{text-align:left;font-weight:600;padding-left:8px}
+.split-tbl input[type=number]{width:60px;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;text-align:right;font-size:12px;font-family:inherit}
+.split-tbl tr.split-total td{background:#eff6ff;font-weight:700;border-top:2px solid #93c5fd}
+.split-tbl .irui-warn{color:#dc2626;font-weight:700}
+.split-warn{background:#fef2f2;border:1px solid #fca5a5;border-radius:8px;padding:8px 10px;font-size:11px;color:#dc2626;margin-top:6px;display:none}
+.ins-need-box{background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:12px;margin-top:10px}
+.ins-need-box h4{font-size:13px;font-weight:700;color:#1e3a8a;margin-bottom:8px}
 .disclaimer{background:#f1f5f9;border-radius:10px;padding:12px;font-size:11px;color:#6b7280;line-height:1.7;margin-top:14px}.disclaimer b{color:#374151}
 .zero-msg{background:#f0fdf4;border:1px solid #86efac;border-radius:14px;padding:18px;text-align:center;margin-top:14px}
 .zero-msg h3{color:#166534;font-size:15px;margin-bottom:6px}.zero-msg p{color:#16a34a;font-size:12px}
@@ -291,6 +303,24 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 </div>
 </div>
 
+<!-- 遺産分割シミュレーション -->
+<div class="card" id="split-section" style="display:none">
+<div class="card-title"><span class="badge bg-navy">3</span>遺産分割シミュレーション</div>
+<div style="font-size:11px;color:#6b7280;margin-bottom:8px">各相続人の取得割合を入力すると、個別の相続税額・遺留分侵害額を計算します</div>
+<table class="split-tbl" id="split-tbl"><thead><tr><th>相続人</th><th>法定相続分</th><th>取得割合(%)</th><th>取得額</th><th>相続税額</th><th>納税不足額</th></tr></thead><tbody id="split-tbody"></tbody></table>
+<div class="split-warn" id="split-warn"></div>
+
+<div style="margin-top:14px;font-size:13px;font-weight:700;color:#374151;margin-bottom:6px">遺留分侵害額</div>
+<div style="font-size:11px;color:#6b7280;margin-bottom:6px">遺留分の権利は兄弟姉妹以外の相続人に認められます（民法1042条）</div>
+<table class="split-tbl" id="irui-tbl"><thead><tr><th>相続人</th><th>遺留分額</th><th>取得額(時価)</th><th>侵害額</th></tr></thead><tbody id="irui-tbody"></tbody></table>
+
+<div class="ins-need-box" id="ins-need-box" style="display:none">
+<h4>生命保険の必要額（相続人別）</h4>
+<div style="font-size:11px;color:#6b7280;margin-bottom:8px">納税資金不足額＋遺留分侵害額をカバーするために必要な保険金額</div>
+<div id="ins-need-body"></div>
+</div>
+</div>
+
 <!-- 節税シミュレーション -->
 <div class="card sim-section" id="sim-section" style="display:none">
 <h2>節税シミュレーション</h2>
@@ -390,7 +420,8 @@ var S={
   giftAmt:110,giftYr:10,addIns:0,tab:0,
   landHome:false,landHomeArea:0,
   landBiz:false,landBizArea:0,
-  landRent:false,landRentArea:0
+  landRent:false,landRentArea:0,
+  splits:{}
 };
 ASSETS.forEach(function(a){if(a.id){S[a.id+"M"]=a.m||0;S[a.id+"T"]=a.t||0;}});
 
@@ -1159,6 +1190,171 @@ document.getElementById("load-file").onchange=function(e){
   this.value="";
 };
 
+// ═══════════ 相続人リスト生成 ═══════════
+function getHeirList(h){
+  var list=[];
+  if(S.spouse==="yes")list.push({id:"spouse",label:"配偶者",legalShare:h.spSh,isSpouse:true,hasIruibun:true,is2割:false});
+  // 子（現配偶者の子）
+  if(S.spouseChildren)for(var i=0;i<S.spouseChildrenN;i++)list.push({id:"ch"+(i+1),label:"子"+(S.spouseChildrenN>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:false});
+  // 前配偶者の子
+  if(S.otherChildren)for(var i=0;i<S.otherChildrenN;i++)list.push({id:"och"+(i+1),label:"前配偶者の子"+(S.otherChildrenN>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:false});
+  // 代襲孫
+  if(S.hasDaishuu&&S.daishuu_grandch>0)for(var i=0;i<S.daishuu_grandch;i++)list.push({id:"gc"+(i+1),label:"孫(代襲)"+(S.daishuu_grandch>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:false});
+  // 養子（孫養子は2割加算）
+  if(S.adopted)for(var i=0;i<S.adoptedN;i++)list.push({id:"ad"+(i+1),label:"養子"+(S.adoptedN>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:true});
+  // 第1順位（子系）の法定相続分を配分
+  var childHeirs=list.filter(function(x){return!x.isSpouse;});
+  if(h.rank===1&&childHeirs.length>0){
+    var perChild=h.otSh/h.otCnt;
+    // 税法上の養子制限: realCh>0なら養子1人、なければ2人
+    var adoptInTax=Math.min(S.adopted?S.adoptedN:0,h.realCh>0?1:2);
+    var taxHeirs=childHeirs.length-(S.adopted?S.adoptedN:0)+adoptInTax;
+    childHeirs.forEach(function(c,i){c.legalShare=perChild;});
+  }
+  // 第2順位（親）
+  if(h.rank===2){
+    list=list.filter(function(x){return x.isSpouse;});
+    if(S.parents==="both"){
+      list.push({id:"fa",label:"父",legalShare:h.otSh/2,hasIruibun:true,is2割:false});
+      list.push({id:"mo",label:"母",legalShare:h.otSh/2,hasIruibun:true,is2割:false});
+    }else if(S.parents==="father"){
+      list.push({id:"fa",label:"父",legalShare:h.otSh,hasIruibun:true,is2割:false});
+    }else{
+      list.push({id:"mo",label:"母",legalShare:h.otSh,hasIruibun:true,is2割:false});
+    }
+  }
+  // 第3順位（兄弟姉妹）
+  if(h.rank===3){
+    list=list.filter(function(x){return x.isSpouse;});
+    for(var i=0;i<h.sib;i++)list.push({id:"sib"+(i+1),label:"兄弟"+(h.sib>1?(i+1):""),legalShare:h.otSh/h.sib,hasIruibun:false,is2割:false});
+  }
+  return list;
+}
+
+// ═══════════ 遺産分割計算 ═══════════
+function calcSplit(){
+  var r=calc(),h=r.h;
+  var sec=document.getElementById("split-section");
+  if(r.nh===0){sec.style.display="none";return;}
+  sec.style.display="block";
+
+  var heirList=getHeirList(h);
+  if(heirList.length===0){sec.style.display="none";return;}
+
+  // S.splitsの初期化（新しい相続人が増えた場合）
+  if(!S.splits)S.splits={};
+  heirList.forEach(function(heir){
+    if(S.splits[heir.id]===undefined)S.splits[heir.id]=Math.round(heir.legalShare*100*10)/10;
+  });
+  // 消えた相続人のsplitを削除
+  var validIds={};heirList.forEach(function(h2){validIds[h2.id]=true;});
+  for(var k in S.splits)if(!validIds[k])delete S.splits[k];
+
+  // === 分割テーブル描画 ===
+  var tbody=document.getElementById("split-tbody");tbody.innerHTML="";
+  var totalPct=0;
+  var netForSplit=r.net+r.landReduce; // 小規模宅地控除前の正味遺産
+  var cashAssets=(S.dpT+S.lsT)*1e4; // 換金性資産
+
+  heirList.forEach(function(heir){
+    var pct=S.splits[heir.id]||0;
+    totalPct+=pct;
+    var amount=Math.round(netForSplit*pct/100);
+    // 各人の相続税: 総額×(取得割合/100)、配偶者軽減は別途
+    var indivTax=Math.round(r.curTaxBefore*(pct/100));
+    // 配偶者軽減
+    if(heir.isSpouse){
+      var spAcquired=r.taxable*(pct/100);
+      var reliefCap=Math.max(16e7,r.taxable*h.spSh);
+      var reliefBase=Math.min(spAcquired,reliefCap);
+      var relief=Math.floor(r.curTaxBefore*(reliefBase/(r.taxable||1)));
+      indivTax=Math.max(0,indivTax-relief);
+    }
+    // 孫養子2割加算
+    if(heir.is2割)indivTax=Math.round(indivTax*1.2);
+    // 納税不足額
+    var cashShare=Math.round(cashAssets*pct/100);
+    var shortage=Math.max(0,indivTax-cashShare);
+
+    heir._amount=amount;heir._tax=indivTax;heir._shortage=shortage;heir._pct=pct;
+
+    var tr=document.createElement("tr");
+    tr.innerHTML='<td>'+heir.label+'</td>'+
+      '<td style="text-align:center;color:#6b7280">'+(heir.legalShare*100).toFixed(1)+'%</td>'+
+      '<td style="text-align:center"><input type="number" min="0" max="100" step="0.1" value="'+pct+'" data-id="'+heir.id+'"></td>'+
+      '<td>'+fmt(amount)+'</td>'+
+      '<td>'+fmt(indivTax)+'</td>'+
+      '<td style="color:'+(shortage>0?'#dc2626':'#16a34a')+'">'+fmt(shortage)+'</td>';
+    tbody.appendChild(tr);
+    tr.querySelector("input").oninput=function(){S.splits[this.dataset.id]=parseFloat(this.value)||0;calcSplit();};
+  });
+
+  // 合計行
+  var totalTax=heirList.reduce(function(a,b){return a+b._tax;},0);
+  var totalShortage=heirList.reduce(function(a,b){return a+b._shortage;},0);
+  var ttr=document.createElement("tr");ttr.className="split-total";
+  ttr.innerHTML='<td>合計</td><td></td><td style="text-align:center;font-weight:700">'+totalPct.toFixed(1)+'%</td><td>'+fmt(Math.round(netForSplit*totalPct/100))+'</td><td>'+fmt(totalTax)+'</td><td>'+fmt(totalShortage)+'</td>';
+  tbody.appendChild(ttr);
+
+  // 警告
+  var warn=document.getElementById("split-warn");
+  if(Math.abs(totalPct-100)>0.1){warn.style.display="block";warn.textContent="取得割合の合計が"+totalPct.toFixed(1)+"%です。合計100%にしてください。";}
+  else{warn.style.display="none";}
+
+  // === 遺留分計算 ===
+  var iruiTbody=document.getElementById("irui-tbody");iruiTbody.innerHTML="";
+  // 遺留分算定基礎額 = 時価合計 - 借入金（みなし相続財産は含まない）
+  var iruiBase=(S.hLM+S.hBM+S.bLM+S.bBM+S.oLM+S.oBM+S.csM+S.lsM+S.dpM+S.lcM+S.oaM-S.dtM)*1e4;
+  // 総体的遺留分割合: 直系尊属のみ→1/3、それ以外→1/2
+  var iruiRate=(h.rank===2&&!h.spSh)?1/3:1/2;
+  var totalIruibun=Math.max(0,iruiBase)*iruiRate;
+  var hasInfringement=false;
+
+  heirList.forEach(function(heir){
+    if(!heir.hasIruibun){
+      // 兄弟姉妹は遺留分なし
+      var tr=document.createElement("tr");
+      tr.innerHTML='<td>'+heir.label+'</td><td style="color:#6b7280">\u2014</td><td style="color:#6b7280">\u2014</td><td style="color:#6b7280">\u2014</td>';
+      iruiTbody.appendChild(tr);return;
+    }
+    var indivIruibun=Math.round(totalIruibun*heir.legalShare);
+    var pct=S.splits[heir.id]||0;
+    var acquiredMarket=Math.round(r.totalM*pct/100); // 時価ベースの取得額
+    var infringement=Math.max(0,indivIruibun-acquiredMarket);
+    heir._iruibun=indivIruibun;heir._infringement=infringement;
+    if(infringement>0)hasInfringement=true;
+
+    var tr=document.createElement("tr");
+    tr.innerHTML='<td>'+heir.label+'</td>'+
+      '<td>'+fmt(indivIruibun)+'</td>'+
+      '<td>'+fmt(acquiredMarket)+'</td>'+
+      '<td class="'+(infringement>0?'irui-warn':'')+'">'+fmt(infringement)+'</td>';
+    iruiTbody.appendChild(tr);
+  });
+
+  // === 保険必要額 ===
+  var insBox=document.getElementById("ins-need-box");
+  var insBody=document.getElementById("ins-need-body");
+  var anyNeed=false;
+  var html="";
+  heirList.forEach(function(heir){
+    var need=(heir._shortage||0)+(heir._infringement||0);
+    if(need>0){
+      anyNeed=true;
+      html+='<div style="display:flex;justify-content:space-between;font-size:12px;padding:4px 0;border-bottom:1px solid #e2e8f0">'+
+        '<span style="font-weight:600">'+heir.label+'</span>'+
+        '<span style="font-weight:700;color:#1e3a8a">'+fmt(need)+'</span></div>';
+    }
+  });
+  if(anyNeed){
+    var totalNeed=heirList.reduce(function(a,b){return a+(b._shortage||0)+(b._infringement||0);},0);
+    html+='<div style="display:flex;justify-content:space-between;font-size:13px;padding:8px 0 0;font-weight:700">'+
+      '<span>\u5408\u8A08\u4FDD\u967A\u5FC5\u8981\u984D</span>'+
+      '<span style="color:#dc2626;font-size:15px">'+fmt(totalNeed)+'</span></div>';
+    insBox.style.display="block";insBody.innerHTML=html;
+  }else{insBox.style.display="none";}
+}
+
 // ═══════════ 2次相続シミュレーション ═══════════
 function calc2nd(){
   var r=calc(),h=r.h;
@@ -1199,7 +1395,7 @@ if(spOwnEl){
 
 // update()の末尾でcalc2ndも呼ぶ
 var _origUpdate=update;
-update=function(){_origUpdate();calc2nd();};
+update=function(){_origUpdate();calcSplit();calc2nd();};
 
 // ═══════════ 印刷用スタイル ═══════════
 var ps=document.createElement("style");
