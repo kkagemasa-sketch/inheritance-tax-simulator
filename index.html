@@ -208,7 +208,10 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div class="q-step hidden" id="q6">
 <div class="q-label"><span class="q-num" id="q6-n">6</span>ご両親はいますか？</div>
 <div class="btn-row" id="q6-btns"></div>
-<div class="btn-row hidden" id="q6-detail"></div>
+<div class="hidden" id="q6-detail" style="margin-left:26px;margin-top:10px;padding-top:8px;border-top:1px solid #e2e8f0">
+<div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:6px">詳細を選択してください</div>
+<div class="btn-row" id="q6-detail-btns"></div>
+</div>
 </div>
 
 <!-- Q7 兄弟姉妹 -->
@@ -217,6 +220,10 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div class="q-sub">死別を含む</div>
 <div class="btn-row" id="q7-btns"></div>
 <div class="hidden" id="q7-detail" style="margin-left:26px;margin-top:6px">
+<div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 10px;margin-bottom:10px;font-size:11px;color:#1e40af;line-height:1.6">
+<b>全血兄弟姉妹:</b> 父母の双方が同じ兄弟姉妹<br>
+<b>半血兄弟姉妹:</b> 父母の一方のみが同じ兄弟姉妹（異母・異父）。法定相続分は全血の<b>1/2</b>になります（民法900条4号）
+</div>
 <div class="num-row" style="align-items:center;margin-bottom:6px"><span style="font-size:12px">全血兄弟姉妹</span><input type="number" id="q7-input" min="0" max="20" value="0" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
 <div class="num-row" style="align-items:center;margin-bottom:6px"><span style="font-size:12px">半血兄弟姉妹</span><input type="number" id="q7-half-input" min="0" max="20" value="0" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span><span style="font-size:10px;color:#6b7280;margin-left:4px">※相続分は全血の1/2</span></div>
 <div class="num-row" style="align-items:center;margin-bottom:4px"><span style="font-size:12px">亡くなった兄弟姉妹</span><input type="number" id="q7-dead-input" min="0" max="20" value="0" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
@@ -1153,12 +1160,13 @@ function buildUI(){
     [{v:true,l:"いる"},{v:false,l:"いない"}],
     S.parents!=="none",function(v){if(!v)S.parents="none";else S.parents="both";buildUI();update();});
   var q6d=document.getElementById("q6-detail");
-  if(S.parents!=="none"){q6d.classList.remove("hidden");q6d.innerHTML="";
+  var q6db=document.getElementById("q6-detail-btns");
+  if(S.parents!=="none"){q6d.classList.remove("hidden");q6db.innerHTML="";
     [{v:"both",l:"両親ともに健在"},{v:"father",l:"父のみ"},{v:"mother",l:"母のみ"}].forEach(function(o){
       var b=document.createElement("button");b.className="btn"+(S.parents===o.v?" on":"");b.textContent=o.l;b.style.flex="1";
-      b.onclick=function(){S.parents=o.v;buildUI();update();};q6d.appendChild(b);
+      b.onclick=function(){S.parents=o.v;buildUI();update();};q6db.appendChild(b);
     });
-  }else{q6d.innerHTML="";q6d.classList.add("hidden");}
+  }else{q6d.classList.add("hidden");}
 
   var q7=document.getElementById("q7");q7.classList.remove("hidden");
   document.getElementById("q7-n").textContent=spExist?7:stepN+3;
