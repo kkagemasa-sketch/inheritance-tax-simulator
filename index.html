@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>相続税シミュレーター</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,"Hiragino Sans","Noto Sans JP","Meiryo",sans-serif;background:#f1f5f9;color:#1e293b;font-size:13px}
+.hdr{background:linear-gradient(135deg,#0f172a,#1e3a8a);color:#fff;padding:18px 20px}
+.hdr-inner{max-width:1100px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px}
+.hdr h1{font-size:20px;font-weight:800}
+.hdr .sub{font-size:12px;color:#93c5fd;margin-top:3px}
+.hdr .right{text-align:right;font-size:11px;color:#7dd3fc}
+.hdr .right b{color:#bfdbfe}
+.wrap{max-width:1100px;margin:0 auto;padding:14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+@media(max-width:840px){.grid2{grid-template-columns:1fr}}
+.card{background:#fff;border-radius:14px;padding:18px;border:1px solid #e2e8f0;margin-bottom:14px}
+.card-title{font-size:15px;font-weight:700;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.badge{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff;flex-shrink:0}
+.bg-navy{background:#1e3a8a}.bg-red{background:#dc2626}
+/* 質問ステップ */
+.q-step{margin-bottom:14px;padding:12px;border-radius:10px;background:#f8fafc;border:1px solid #e2e8f0;transition:all .2s}
+.q-step.hidden{display:none}
+.q-step .q-num{display:inline-flex;align-items:center;justify-content:center;width:20px;height:20px;border-radius:50%;background:#1e3a8a;color:#fff;font-size:10px;font-weight:700;margin-right:6px;flex-shrink:0}
+.q-label{font-size:13px;font-weight:600;color:#1e293b;margin-bottom:8px;display:flex;align-items:center}
+.q-sub{font-size:11px;color:#6b7280;margin:-4px 0 8px 26px}
+.btn-row{display:flex;gap:6px;flex-wrap:wrap;margin-left:26px}
+.btn{padding:7px 14px;border-radius:8px;border:1px solid #d1d5db;font-size:12px;font-weight:600;cursor:pointer;background:#fff;color:#4b5563;font-family:inherit;transition:all .15s}
+.btn.on{background:#1e3a8a;color:#fff;border-color:#1e3a8a}
+.btn:hover:not(.on){border-color:#93c5fd;background:#f0f9ff}
+.btn-sm{padding:5px 0;width:42px;text-align:center}
+.num-row{display:flex;gap:5px;flex-wrap:wrap;margin-left:26px}
+.heir-note{background:#eff6ff;border:1px solid #bfdbfe;border-radius:10px;padding:10px 12px;font-size:11px;color:#1e40af;line-height:1.6;margin-top:6px}
+.heir-note b{color:#1e3a8a}
+.info-bar{background:#eff6ff;border-radius:10px;padding:10px;display:grid;grid-template-columns:repeat(5,1fr);gap:4px;margin-top:10px}
+@media(max-width:600px){.info-bar{grid-template-columns:repeat(3,1fr)}}
+.info-bar .il{font-size:9px;color:#3b82f6}.info-bar .iv{font-size:12px;font-weight:700;color:#1e3a8a}
+/* 財産テーブル */
+.asset-tbl{width:100%;border-collapse:collapse;font-size:12px;margin-top:4px}
+.asset-tbl thead th{background:#f8fafc;border-bottom:2px solid #e2e8f0;padding:6px 4px;font-weight:700;color:#374151;font-size:11px}
+.asset-tbl th.at-name{text-align:left;padding-left:8px;width:auto}
+.asset-tbl th.at-val{width:100px;text-align:center}
+.asset-tbl td{padding:4px;border-bottom:1px solid #f1f5f9}
+.asset-tbl tr.at-cat td{background:#f1f5f9;font-weight:700;font-size:11px;color:#475569;padding:6px 8px;border-bottom:1px solid #e2e8f0}
+.asset-tbl tr.at-minus td{background:#fef2f2}
+.asset-tbl td.at-item{padding-left:12px;font-weight:500;line-height:1.3}
+.asset-tbl .at-hint{font-size:10px;color:#6b7280;font-weight:400}
+.asset-tbl input[type=number]{width:100%;border:1px solid #d1d5db;border-radius:6px;padding:5px 6px;text-align:right;font-size:12px;outline:none;font-family:inherit}
+.asset-tbl input[type=number]:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.asset-total{display:flex;justify-content:space-between;background:#f8fafc;border-radius:8px;padding:8px 12px;margin-top:8px;font-size:12px;font-weight:700;color:#1e3a8a}
+.asset-total .at-sub{font-size:10px;color:#6b7280;font-weight:400}
+.asset-notes{background:#eff6ff;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:#1e40af;line-height:1.6}
+.asset-notes b{font-weight:700}
+/* 入力フィールド */
+label.field{display:block;font-size:12px;font-weight:600;color:#374151;margin:8px 0 3px}
+.field-sub{font-size:11px;color:#2563eb;margin-bottom:3px}
+.input-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
+.input-row input[type=number]{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:7px 10px;text-align:right;font-size:13px;outline:none;font-family:inherit}
+.input-row input[type=number]:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.input-row .unit{font-size:12px;color:#6b7280;white-space:nowrap}
+/* 結果カード */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.stat-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
+@media(max-width:500px){.stat-grid3{grid-template-columns:1fr 1fr}}
+.stat-box{border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px}
+.stat-box .sl{font-size:10px;color:#6b7280;margin-bottom:2px}.stat-box .sv{font-size:14px;font-weight:700}
+.tax-big{border-radius:14px;padding:18px;text-align:center;border:2px solid}
+.tax-big .tb-label{font-size:12px;color:#6b7280;margin-bottom:4px}
+.tax-big .tb-val{font-size:38px;font-weight:900}
+.tax-big .tb-note{font-size:11px;margin-top:6px}
+.tax-red{background:#fef2f2;border-color:#fca5a5}.tax-red .tb-val{color:#b91c1c}.tax-red .tb-note{color:#9ca3af}
+.tax-green{background:#f0fdf4;border-color:#86efac}.tax-green .tb-val{color:#16a34a}.tax-green .tb-note{color:#16a34a}
+.pie-wrap{margin-top:12px}.pie-wrap h4{font-size:12px;font-weight:600;color:#4b5563;margin-bottom:4px}
+.pie-legend{display:flex;flex-wrap:wrap;gap:6px 12px;margin-top:6px}
+.pie-legend span{font-size:11px;display:flex;align-items:center;gap:4px}
+.pie-legend .dot{width:10px;height:10px;border-radius:2px;display:inline-block}
+/* 節税 */
+.sim-section{margin-top:14px}.sim-section h2{font-size:17px;font-weight:700;margin-bottom:4px}
+.sim-section .sim-sub{font-size:12px;color:#6b7280;margin-bottom:14px}.sim-section .sim-sub b{color:#b91c1c}
+.tabs{display:flex;gap:2px;border-bottom:2px solid #e2e8f0;margin-bottom:16px}
+.tab{padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;border:none;background:transparent;color:#6b7280;border-radius:8px 8px 0 0;font-family:inherit}
+.tab.active{background:#1e3a8a;color:#fff}
+.slider-group{margin-bottom:16px}
+.slider-header{display:flex;justify-content:space-between;margin-bottom:4px}
+.slider-header label{font-size:12px;font-weight:600;color:#374151}
+.slider-header span{font-size:12px;font-weight:700;color:#1e40af}
+input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
+.slider-footer{display:flex;justify-content:space-between;font-size:10px;color:#9ca3af;margin-top:2px}
+.result-box{border-radius:12px;padding:12px}
+.result-row{display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px}
+.result-row .rk{color:#4b5563}.result-row .rv{font-weight:700}
+.result-box hr{border:none;border-top:1px solid;margin:6px 0 8px}
+.result-total{display:flex;justify-content:space-between;align-items:center}
+.result-total .rt-label{font-weight:600;color:#374151;font-size:13px}
+.result-total .rt-val{font-weight:900;font-size:20px;color:#16a34a}
+.result-pct{font-size:11px;color:#9ca3af;text-align:right;margin-top:4px}
+.amber-box{background:#fffbeb;border:1px solid #fcd34d}.amber-box hr{border-color:#fcd34d}
+.green-box{background:#f0fdf4;border:1px solid #86efac}.green-box hr{border-color:#86efac}
+.tip{background:#eff6ff;border-radius:10px;padding:10px;font-size:11px;color:#1d4ed8;line-height:1.6;margin-top:8px}.tip b{font-weight:700}
+.progress-bg{background:#bfdbfe;border-radius:99px;height:6px;margin-top:8px}
+.progress-fill{background:#1e40af;border-radius:99px;height:6px;transition:width .3s}
+.progress-labels{display:flex;justify-content:space-between;font-size:10px;color:#60a5fa;margin-top:3px}
+.compare-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px}
+@media(max-width:800px){.compare-grid{grid-template-columns:repeat(2,1fr)}}
+.compare-card{border-radius:10px;padding:10px;text-align:center;border:2px solid}
+.compare-card .cc-label{font-size:10px;color:#6b7280;margin-bottom:3px}
+.compare-card .cc-val{font-size:17px;font-weight:900}
+.compare-card .cc-save{font-size:10px;font-weight:700;color:#16a34a;margin-top:3px}
+.hero-box{background:linear-gradient(135deg,#f0fdf4,#eff6ff);border:2px solid #4ade80;border-radius:14px;padding:18px;text-align:center;margin-bottom:14px}
+.hero-box .hb-val{font-size:34px;font-weight:900;color:#15803d;margin:6px 0}
+.hero-box .hb-save{font-size:15px;font-weight:700;color:#16a34a}
+.hero-box .hb-pct{font-size:12px;color:#6b7280;margin-top:4px}
+.disclaimer{background:#f1f5f9;border-radius:10px;padding:12px;font-size:11px;color:#6b7280;line-height:1.7;margin-top:14px}.disclaimer b{color:#374151}
+.zero-msg{background:#f0fdf4;border:1px solid #86efac;border-radius:14px;padding:18px;text-align:center;margin-top:14px}
+.zero-msg h3{color:#166534;font-size:15px;margin-bottom:6px}.zero-msg p{color:#16a34a;font-size:12px}
+.ins-status{background:#eff6ff;border-radius:12px;padding:14px;margin-bottom:14px}
+.ins-status h4{font-size:13px;font-weight:700;color:#1e3a8a;margin-bottom:10px}
+.tree-card{background:#fff;border-radius:14px;padding:18px;border:1px solid #e2e8f0;margin-bottom:14px}
+.tree-card h3{font-size:14px;font-weight:700;color:#1f2937;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+</style>
+</head>
+<body>
+<div class="hdr"><div class="hdr-inner"><div><h1>相続税シミュレーター</h1><div class="sub">家族構成を入力 → 相続税を把握 → 節税プランを見える化</div></div><div class="right"><div>プルデンシャル生命保険</div><div><b>資産防衛プランニングツール</b></div></div></div></div>
+<div class="wrap">
+<div class="grid2">
+<!-- === 左カラム === -->
+<div>
+
+<!-- 家族構成 -->
+<div class="card" id="family-card">
+<div class="card-title"><span class="badge bg-navy">1</span>家族構成を教えてください</div>
+
+<!-- Q1 配偶者 -->
+<div class="q-step" id="q1">
+<div class="q-label"><span class="q-num">1</span>配偶者はいますか？</div>
+<div class="btn-row" id="q1-btns"></div>
+</div>
+
+<!-- Q2 初婚か -->
+<div class="q-step hidden" id="q2">
+<div class="q-label"><span class="q-num">2</span>あなたは初婚ですか？</div>
+<div class="btn-row" id="q2-btns"></div>
+</div>
+
+<!-- Q3 現配偶者との子 -->
+<div class="q-step hidden" id="q3">
+<div class="q-label"><span class="q-num">3</span>現在の配偶者との間に子どもはいますか？</div>
+<div class="q-sub">死別・廃除・欠格を含む</div>
+<div class="btn-row" id="q3-btns"></div>
+<div class="num-row hidden" id="q3-num"></div>
+</div>
+
+<!-- Q4 配偶者以外の子 -->
+<div class="q-step hidden" id="q4">
+<div class="q-label"><span class="q-num" id="q4-n">4</span><span id="q4-title">配偶者以外に子どもはいますか？</span></div>
+<div class="q-sub">前配偶者との子、認知した子など（死別・廃除・欠格を含む）</div>
+<div class="btn-row" id="q4-btns"></div>
+<div class="num-row hidden" id="q4-num"></div>
+</div>
+
+<!-- Q5 養子 -->
+<div class="q-step hidden" id="q5">
+<div class="q-label"><span class="q-num" id="q5-n">5</span>養子はいますか？</div>
+<div class="q-sub">孫養子を含む</div>
+<div class="btn-row" id="q5-btns"></div>
+<div class="num-row hidden" id="q5-num"></div>
+</div>
+
+<!-- Q6 両親 -->
+<div class="q-step hidden" id="q6">
+<div class="q-label"><span class="q-num" id="q6-n">6</span>ご両親はいますか？</div>
+<div class="btn-row" id="q6-btns"></div>
+<div class="btn-row hidden" id="q6-detail"></div>
+</div>
+
+<!-- Q7 兄弟姉妹 -->
+<div class="q-step hidden" id="q7">
+<div class="q-label"><span class="q-num" id="q7-n">7</span>兄弟姉妹はいますか？</div>
+<div class="q-sub">死別を含む</div>
+<div class="btn-row" id="q7-btns"></div>
+<div class="num-row hidden" id="q7-num"></div>
+</div>
+
+<!-- Q8 家族以外 -->
+<div class="q-step hidden" id="q8">
+<div class="q-label"><span class="q-num" id="q8-n">8</span>ご家族以外に財産を渡したい方はいますか？</div>
+<div class="q-sub">遺言による遺贈の対象者</div>
+<div class="btn-row" id="q8-btns"></div>
+<div class="hidden" id="q8-detail" style="margin-left:26px;margin-top:8px">
+<div style="font-size:11px;font-weight:600;color:#374151;margin-bottom:4px">親族（六親等以内の血族・三親等以内の姻族）</div>
+<div class="num-row" id="q8-rel-num"></div>
+<div style="font-size:11px;font-weight:600;color:#374151;margin:8px 0 4px">親族以外</div>
+<div class="num-row" id="q8-nonrel-num"></div>
+</div>
+</div>
+
+<!-- 判定結果 -->
+<div class="heir-note" id="heir-note" style="display:none"></div>
+
+<div class="info-bar">
+<div><div class="il">法定相続人</div><div class="iv" id="d-heirs">-</div></div>
+<div><div class="il">相続順位</div><div class="iv" id="d-rank">-</div></div>
+<div><div class="il">基礎控除</div><div class="iv" id="d-basic">-</div></div>
+<div><div class="il">保険非課税枠</div><div class="iv" id="d-insex">-</div></div>
+<div><div class="il">退職金非課税枠</div><div class="iv" id="d-deathex">-</div></div>
+</div>
+</div>
+
+<!-- 家系図 -->
+<div class="tree-card">
+<h3><span class="badge bg-navy" style="font-size:9px">図</span>家系図（相続人を緑で表示）</h3>
+<canvas id="tree" width="500" height="280"></canvas>
+</div>
+
+<!-- 財産入力 -->
+<div class="card">
+<div class="card-title"><span class="badge bg-navy">2</span>相続財産の一覧</div>
+<div style="font-size:11px;color:#6b7280;margin-bottom:8px">※ 相続税の計算には「相続税評価額」を使用します</div>
+<table class="asset-tbl">
+<thead><tr><th class="at-name">項目</th><th class="at-val">財産額<br><span style="font-weight:400;font-size:10px">(万円)</span></th><th class="at-val">相続税評価額<br><span style="font-weight:400;font-size:10px">(万円)</span></th></tr></thead>
+<tbody id="asset-tbody"></tbody>
+</table>
+<div class="asset-total"><div>財産額合計<div class="at-sub">（時価ベース）</div></div><div id="d-total-m">0万円</div></div>
+<div class="asset-total" style="background:#eff6ff;margin-top:4px"><div>相続税評価額合計<div class="at-sub">（税計算ベース）</div></div><div id="d-total-t">0万円</div></div>
+<div class="asset-notes" id="asset-notes"></div>
+</div>
+</div>
+
+<!-- === 右カラム === -->
+<div>
+<div class="card">
+<div class="card-title"><span class="badge bg-red">!</span>現状の相続税（概算）</div>
+<div class="stat-grid3">
+<div class="stat-box"><div class="sl">正味の遺産額</div><div class="sv" id="d-net"></div></div>
+<div class="stat-box"><div class="sl">基礎控除額</div><div class="sv" id="d-basic2"></div></div>
+<div class="stat-box"><div class="sl">課税遺産総額</div><div class="sv" id="d-taxable"></div></div>
+<div class="stat-box"><div class="sl">保険非課税残枠</div><div class="sv" id="d-remain-ins"></div></div>
+<div class="stat-box"><div class="sl">退職金非課税残枠</div><div class="sv" id="d-remain-death"></div></div>
+<div class="stat-box"><div class="sl">財産額合計(参考)</div><div class="sv" id="d-total-m2"></div></div>
+</div>
+<div class="tax-big" id="tax-box"><div class="tb-label">推定相続税額（総額）</div><div class="tb-val" id="d-tax"></div><div class="tb-note" id="d-tax-note"></div></div>
+<div class="pie-wrap"><h4>財産内訳（相続税評価額ベース）</h4><canvas id="pie" width="320" height="170"></canvas><div class="pie-legend" id="pie-legend"></div></div>
+</div>
+</div>
+</div>
+
+<!-- 節税シミュレーション -->
+<div class="card sim-section" id="sim-section" style="display:none">
+<h2>節税シミュレーション</h2>
+<div class="sim-sub">現在の相続税 <b id="d-cur-tax2"></b> を、贈与・保険でどこまで減らせるか確認しましょう。</div>
+<div class="tabs" id="tabs"></div>
+<div id="tab0" class="grid2"><div>
+<div class="slider-group"><div class="slider-header"><label>年間贈与額</label><span id="d-gift-amt"></span></div><input type="range" id="sl-gift" min="110" max="500" step="10" value="110"><div class="slider-footer"><span>110万円（非課税限度）</span><span>500万円</span></div></div>
+<div class="slider-group"><div class="slider-header"><label>贈与期間</label><span id="d-gift-yr"></span></div><input type="range" id="sl-yr" min="1" max="30" value="10"><div class="slider-footer"><span>1年</span><span>30年</span></div></div>
+<div class="result-box amber-box"><div class="result-row"><span class="rk">合計贈与額</span><span class="rv" id="d-total-gift"></span></div><div class="result-row"><span class="rk">贈与後の相続税</span><span class="rv" id="d-after-gift"></span></div><hr><div class="result-total"><span class="rt-label">節税効果</span><span class="rt-val" id="d-gift-save"></span></div><div class="result-pct" id="d-gift-pct"></div></div>
+<div class="tip"><b>ポイント：</b>年間110万円以内の贈与は贈与税ゼロ。毎年継続で相続財産を計画的に圧縮できます。<br>⚠️ 相続開始前7年以内の贈与は遺産に加算されます（2024年改正）。</div>
+</div><div><h4 style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">贈与年数と相続税の推移</h4><canvas id="line-chart" width="500" height="260"></canvas></div></div>
+<div id="tab1" style="display:none" class="grid2"><div>
+<div class="ins-status"><h4>生命保険 非課税枠の状況</h4><div class="result-row"><span class="rk" id="d-ins-cap-label"></span><span class="rv" id="d-ins-cap"></span></div><div class="result-row"><span class="rk">既存の死亡保険金</span><span class="rv" id="d-ins-cur"></span></div><hr style="border:none;border-top:1px solid #bfdbfe;margin:6px 0 8px"><div class="result-total"><span class="rt-label" style="color:#1e40af">残り非課税枠</span><span class="rt-val" style="color:#1e3a8a" id="d-ins-remain"></span></div><div class="progress-bg"><div class="progress-fill" id="ins-bar"></div></div><div class="progress-labels"><span>使用済</span><span>非課税枠満枠</span></div></div>
+<label class="field">追加加入する保険金額（一時払終身保険など）</label><div class="input-row"><input type="number" id="in-add-ins" value="0"><span class="unit">万円</span></div><div id="ins-warn" style="font-size:11px;color:#ea580c;margin:-2px 0 8px;display:none"></div>
+<div class="result-box green-box"><div class="result-row"><span class="rk">非課税適用額</span><span class="rv" id="d-eff-ins"></span></div><div class="result-row"><span class="rk">保険加入後の相続税</span><span class="rv" id="d-after-ins"></span></div><hr><div class="result-total"><span class="rt-label">節税効果</span><span class="rt-val" id="d-ins-save"></span></div><div class="result-pct" id="d-ins-pct"></div></div>
+<div class="tip"><b>ポイント：</b>課税される現預金を一時払終身保険に変換し、非課税枠を活用。受取人が直接受け取るため遺産分割協議不要のメリットも。</div>
+</div><div><h4 style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">相続税の比較（保険活用前後）</h4><canvas id="bar1" width="400" height="260"></canvas></div></div>
+<div id="tab2" style="display:none">
+<div class="compare-grid">
+<div class="compare-card" style="background:#fef2f2;border-color:#fca5a5"><div class="cc-label">現状の相続税</div><div class="cc-val" style="color:#b91c1c" id="d-c-cur"></div></div>
+<div class="compare-card" style="background:#fff7ed;border-color:#fdba74"><div class="cc-label" id="d-c-g-label"></div><div class="cc-val" style="color:#c2410c" id="d-c-gift"></div><div class="cc-save" id="d-c-gs"></div></div>
+<div class="compare-card" style="background:#eff6ff;border-color:#93c5fd"><div class="cc-label">保険活用のみ</div><div class="cc-val" style="color:#1e40af" id="d-c-ins"></div><div class="cc-save" id="d-c-is"></div></div>
+<div class="compare-card" style="background:#f0fdf4;border-color:#86efac"><div class="cc-label">贈与＋保険</div><div class="cc-val" style="color:#15803d" id="d-c-comb"></div><div class="cc-save" id="d-c-cs"></div></div>
+</div>
+<div class="hero-box"><div style="font-size:12px;color:#4b5563">最大節税シナリオ（贈与＋保険）</div><div class="hb-val" id="d-hero-val"></div><div class="hb-save">合計削減額: <span id="d-hero-save"></span></div><div class="hb-pct" id="d-hero-pct"></div></div>
+<canvas id="bar2" width="500" height="260"></canvas>
+</div>
+</div>
+<div class="zero-msg" id="zero-msg" style="display:none"><h3>現時点では相続税は発生しません</h3><p id="d-zero-msg"></p></div>
+<div class="disclaimer"><b>免責事項: </b>本ツールは概算値です。小規模宅地等の特例・配偶者の税額軽減・2次相続・相続時精算課税等は考慮していません。正確な試算は税理士にご相談ください。養子の法定相続人算入は実子有=1人/実子無=2人が上限です（特別養子等の例外あり）。</div>
+</div>
+
+<script>
+// ═══════════ 財産カテゴリ定義 ═══════════
+var ASSETS=[
+  {cat:"不動産"},
+  {id:"hL",n:"自宅用の土地",hint:"路線価方式 / 倍率方式で評価",m:0,t:0},
+  {id:"hB",n:"自宅用の建物",hint:"固定資産税評価額で評価",m:0,t:0},
+  {id:"bL",n:"事業用の土地",hint:"路線価方式 / 倍率方式で評価",m:0,t:0},
+  {id:"bB",n:"事業用の建物",hint:"固定資産税評価額で評価",m:0,t:0},
+  {id:"oL",n:"その他の土地",hint:"",m:0,t:0},
+  {id:"oB",n:"その他の建物",hint:"",m:0,t:0},
+  {cat:"株式・有価証券"},
+  {id:"cs",n:"自社株（出資評価額）",hint:"類似業種比準 / 純資産価額等",m:0,t:0},
+  {id:"ls",n:"上場株式・有価証券",hint:"",m:0,t:0},
+  {cat:"現金・預金等"},
+  {id:"dp",n:"預貯金",hint:"",m:3000,t:3000},
+  {cat:"みなし相続財産"},
+  {id:"db",n:"死亡退職金",hint:"",m:0,t:0},
+  {id:"li",n:"生命保険金",hint:"",m:0,t:0},
+  {cat:"その他の資産"},
+  {id:"lc",n:"自社法人への貸付金",hint:"",m:0,t:0},
+  {id:"oa",n:"その他の財産",hint:"",m:0,t:0},
+  {cat:"差し引く財産",minus:true},
+  {id:"dt",n:"借入金",hint:"",m:500,t:500,minus:true}
+];
+
+// ═══════════ 状態 ═══════════
+var S={
+  spouse:"yes",firstMarriage:true,
+  spouseChildren:false,spouseChildrenN:0,
+  otherChildren:false,otherChildrenN:0,
+  adopted:false,adoptedN:0,
+  parents:"none",
+  siblings:false,siblingsN:0,
+  outside:false,outsideRel:0,outsideNonRel:0,
+  giftAmt:110,giftYr:10,addIns:0,tab:0
+};
+ASSETS.forEach(function(a){if(a.id){S[a.id+"M"]=a.m||0;S[a.id+"T"]=a.t||0;}});
+
+// ═══════════ 速算表 ═══════════
+var BK=[[1e7,.10,0],[3e7,.15,5e5],[5e7,.20,2e6],[1e8,.30,7e6],[2e8,.40,17e6],[3e8,.45,27e6],[6e8,.50,42e6],[Infinity,.55,72e6]];
+function taxOn(a){if(a<=0)return 0;for(var i=0;i<BK.length;i++)if(a<=BK[i][0])return Math.max(0,a*BK[i][1]-BK[i][2]);return 0;}
+
+// ═══════════ 法定相続人判定 ═══════════
+function getHeirs(){
+  var sp=(S.spouse==="yes")?1:0;
+  var realCh=(S.spouseChildren?S.spouseChildrenN:0)+(S.otherChildren?S.otherChildrenN:0);
+  var adoptCh=S.adopted?S.adoptedN:0;
+  var totalCh=realCh+adoptCh;
+  var adoptLimit=realCh>0?1:2;
+  var adoptCount=Math.min(adoptCh,adoptLimit);
+  var taxCh=realCh+adoptCount;
+
+  var pa=0;
+  if(S.parents==="both")pa=2;else if(S.parents==="father"||S.parents==="mother")pa=1;
+  var sib=S.siblings?S.siblingsN:0;
+
+  var rank,nh,spSh,otSh,otCnt,desc,allCh=totalCh;
+
+  if(totalCh>0){
+    rank=1;nh=sp+taxCh;spSh=sp?0.5:0;otSh=sp?0.5:1;otCnt=taxCh;
+    var parts=[];
+    if(S.spouseChildren&&S.spouseChildrenN>0)parts.push("現配偶者の子"+S.spouseChildrenN+"人");
+    if(S.otherChildren&&S.otherChildrenN>0)parts.push("前配偶者等の子"+S.otherChildrenN+"人");
+    if(adoptCh>0)parts.push("養子"+adoptCh+"人"+(adoptCh>adoptCount?"(税法上"+adoptCount+"人算入)":""));
+    desc="<b>第1順位（子）</b>が適用されます。"+parts.join("、")+"。";
+    if(sp)desc+="<br>法定相続分：配偶者 1/2、子（全員で）1/2を均等分割";
+    else desc+="<br>法定相続分：子が均等分割";
+  }else if(pa>0){
+    rank=2;nh=sp+pa;spSh=sp?2/3:0;otSh=sp?1/3:1;otCnt=pa;
+    desc="<b>第2順位（直系尊属）</b>が適用されます。子がいないため、"+(S.parents==="both"?"父母":"父母の一方")+"が相続人です。";
+    if(sp)desc+="<br>法定相続分：配偶者 2/3、直系尊属（全員で）1/3";
+  }else if(sib>0){
+    rank=3;nh=sp+sib;spSh=sp?0.75:0;otSh=sp?0.25:1;otCnt=sib;
+    desc="<b>第3順位（兄弟姉妹）</b>が適用されます。子も父母もいないため、兄弟姉妹"+sib+"人が相続人です。";
+    if(sp)desc+="<br>法定相続分：配偶者 3/4、兄弟姉妹（全員で）1/4";
+  }else if(sp){
+    rank=0;nh=1;spSh=1;otSh=0;otCnt=0;
+    desc="<b>配偶者のみ</b>が相続人です。";
+  }else{
+    rank=-1;nh=0;spSh=0;otSh=0;otCnt=0;
+    desc="法定相続人がいません。";
+  }
+  var rankLabel=rank===1?"第1順位（子）":rank===2?"第2順位（父母）":rank===3?"第3順位（兄弟姉妹）":rank===0?"配偶者のみ":"なし";
+  return{rank:rank,nh:nh,spSh:spSh,otSh:otSh,otCnt:otCnt,desc:desc,rankLabel:rankLabel,allCh:allCh,realCh:realCh,adoptCh:adoptCh,adoptCount:adoptCount,pa:pa,sib:sib};
+}
+
+function calcTax(taxable,h){
+  if(taxable<=0||h.nh===0)return 0;
+  var t=0;
+  if(h.spSh>0)t+=taxOn(taxable*h.spSh);
+  if(h.otCnt>0&&h.otSh>0)t+=taxOn(taxable*h.otSh/h.otCnt)*h.otCnt;
+  return t;
+}
+
+function fmt(v){if(!v||v===0)return"0円";var a=Math.abs(v);if(a>=1e8)return(v/1e8).toFixed(2)+"億円";if(a>=1e4)return Math.round(v/1e4).toLocaleString()+"万円";return v.toLocaleString()+"円";}
+
+// ═══════════ 計算 ═══════════
+function calc(){
+  var h=getHeirs(),nh=h.nh;
+  var insEx=5e6*nh;
+  var deathEx=5e6*nh;
+  var bd=3e7+6e6*nh;
+  if(nh===0){insEx=0;deathEx=0;bd=0;}
+
+  var realEstate=(S.hLT+S.hBT+S.bLT+S.bBT+S.oLT+S.oBT)*1e4;
+  var stocks=(S.csT+S.lsT)*1e4;
+  var deposits=S.dpT*1e4;
+  var insGross=S.liT*1e4;
+  var deathGross=S.dbT*1e4;
+  var insT=Math.max(0,insGross-insEx);
+  var deathT=Math.max(0,deathGross-deathEx);
+  var loanCo=S.lcT*1e4;
+  var othAsset=S.oaT*1e4;
+  var debt=S.dtT*1e4;
+
+  var net=realEstate+stocks+deposits+insT+deathT+loanCo+othAsset-debt;
+  var taxable=Math.max(0,net-bd);
+  var curTax=calcTax(taxable,h);
+
+  var remainIns=Math.max(0,insEx-insGross);
+  var remainDeath=Math.max(0,deathEx-deathGross);
+
+  var totalM=(S.hLM+S.hBM+S.bLM+S.bBM+S.oLM+S.oBM+S.csM+S.lsM+S.dpM+S.dbM+S.liM+S.lcM+S.oaM-S.dtM)*1e4;
+  var totalT=(S.hLT+S.hBT+S.bLT+S.bBT+S.oLT+S.oBT+S.csT+S.lsT+S.dpT+S.dbT+S.liT+S.lcT+S.oaT-S.dtT)*1e4;
+
+  var tGift=S.giftYr*S.giftAmt*1e4;
+  var gTax=calcTax(Math.max(0,Math.max(0,net-tGift)-bd),h);
+
+  var effIns=Math.min(S.addIns*1e4,remainIns);
+  var iTax=calcTax(Math.max(0,Math.max(0,net-effIns)-bd),h);
+
+  var cTax=calcTax(Math.max(0,Math.max(0,net-tGift-effIns)-bd),h);
+
+  var tl=[];
+  for(var i=0;i<=Math.min(S.giftYr,30);i++){
+    var g=i*S.giftAmt*1e4;
+    tl.push(Math.round(calcTax(Math.max(0,Math.max(0,net-g)-bd),h)/1e4));
+  }
+
+  var breakdown=[
+    {n:"自宅(土地)",v:S.hLT*1e4,c:"#1e3a8a"},
+    {n:"自宅(建物)",v:S.hBT*1e4,c:"#1e40af"},
+    {n:"事業用(土地)",v:S.bLT*1e4,c:"#1d4ed8"},
+    {n:"事業用(建物)",v:S.bBT*1e4,c:"#2563eb"},
+    {n:"その他不動産",v:(S.oLT+S.oBT)*1e4,c:"#3b82f6"},
+    {n:"自社株",v:S.csT*1e4,c:"#7c3aed"},
+    {n:"上場株式",v:S.lsT*1e4,c:"#8b5cf6"},
+    {n:"預貯金",v:S.dpT*1e4,c:"#0891b2"},
+    {n:"退職金(課税分)",v:deathT,c:"#f59e0b"},
+    {n:"保険(課税分)",v:insT,c:"#ea580c"},
+    {n:"貸付金",v:S.lcT*1e4,c:"#10b981"},
+    {n:"その他",v:S.oaT*1e4,c:"#93c5fd"}
+  ].filter(function(x){return x.v>0;});
+
+  return{h:h,nh:nh,insEx:insEx,deathEx:deathEx,bd:bd,net:net,taxable:taxable,curTax:curTax,
+    remainIns:remainIns,remainDeath:remainDeath,totalM:totalM,totalT:totalT,
+    tGift:tGift,gTax:gTax,gSave:curTax-gTax,effIns:effIns,iTax:iTax,iSave:curTax-iTax,
+    cTax:cTax,cSave:curTax-cTax,tl:tl,breakdown:breakdown};
+}
+
+// ═══════════ 家系図 ═══════════
+function drawTree(h){
+  var c=document.getElementById("tree"),dpr=window.devicePixelRatio||1,W=500,H=280;
+  c.width=W*dpr;c.height=H*dpr;c.style.width=W+"px";c.style.height=H+"px";
+  var ctx=c.getContext("2d");ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
+  var bw=64,bh=26,sp=(S.spouse==="yes");
+  var isH1=h.allCh>0,isH2=!isH1&&h.pa>0,isH3=!isH1&&!isH2&&h.sib>0;
+  function box(x,y,w,ht,lbl,heir,self,ghost){
+    var r=5;ctx.beginPath();
+    ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.quadraticCurveTo(x+w,y,x+w,y+r);
+    ctx.lineTo(x+w,y+ht-r);ctx.quadraticCurveTo(x+w,y+ht,x+w-r,y+ht);
+    ctx.lineTo(x+r,y+ht);ctx.quadraticCurveTo(x,y+ht,x,y+ht-r);
+    ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
+    if(ghost){ctx.setLineDash([3,3]);ctx.fillStyle="#fef2f2";ctx.fill();ctx.strokeStyle="#f87171";ctx.lineWidth=1;ctx.stroke();ctx.setLineDash([]);ctx.fillStyle="#b91c1c";}
+    else if(self){ctx.fillStyle="#1e3a8a";ctx.fill();ctx.fillStyle="#fff";}
+    else if(heir){ctx.fillStyle="#dcfce7";ctx.fill();ctx.strokeStyle="#16a34a";ctx.lineWidth=2;ctx.stroke();ctx.fillStyle="#166534";}
+    else{ctx.fillStyle="#f8fafc";ctx.fill();ctx.strokeStyle="#cbd5e1";ctx.lineWidth=1;ctx.stroke();ctx.fillStyle="#94a3b8";}
+    ctx.font=(self?"bold ":"")+"10px sans-serif";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(lbl,x+w/2,y+ht/2);
+    if(heir&&!self&&!ghost){ctx.fillStyle="#16a34a";ctx.font="bold 8px sans-serif";ctx.fillText("相続人",x+w/2,y+ht+9);}
+  }
+  function ln(x1,y1,x2,y2){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.strokeStyle="#94a3b8";ctx.lineWidth=1;ctx.stroke();}
+
+  var selfX=W/2-bw/2,selfY=115;
+  var py=18;
+  if(S.parents!=="none"){
+    var hasFa=(S.parents==="both"||S.parents==="father");
+    var hasMo=(S.parents==="both"||S.parents==="mother");
+    if(hasFa){var fx=W/2-bw-16;box(fx,py,bw,bh,"父",isH2,false);ln(fx+bw/2,py+bh,selfX+bw/2,selfY);}
+    if(hasMo){var mx=W/2+16;box(mx,py,bw,bh,"母",isH2,false);ln(mx+bw/2,py+bh,selfX+bw/2,selfY);}
+    if(hasFa&&hasMo)ln(W/2-bw-16+bw,py+bh/2,W/2+16,py+bh/2);
+  }
+  if(S.siblings&&S.siblingsN>0){
+    var sn=Math.min(S.siblingsN,3);
+    for(var i=0;i<sn;i++){var sx=selfX-80-(sn-1-i)*70;box(sx,selfY,bw,bh,"兄弟"+(S.siblingsN>1?(i+1):""),isH3,false);ln(sx+bw/2,selfY,selfX,selfY+bh/2);}
+    if(S.siblingsN>3){ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.textAlign="left";ctx.fillText("他"+(S.siblingsN-3)+"人",selfX-80+bw+4,selfY+bh/2+3);}
+  }
+  box(selfX,selfY,bw,bh,"被相続人",false,true);
+  if(sp){
+    var cpx=selfX+bw+28;box(cpx,selfY,bw,bh,"配偶者",true,false);
+    ctx.strokeStyle="#dc2626";ctx.lineWidth=2;
+    ctx.beginPath();ctx.moveTo(selfX+bw,selfY+bh/2-2);ctx.lineTo(cpx,selfY+bh/2-2);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(selfX+bw,selfY+bh/2+2);ctx.lineTo(cpx,selfY+bh/2+2);ctx.stroke();
+  }
+  if(S.otherChildren&&S.otherChildrenN>0){
+    var epx=selfX-bw-28;box(epx,selfY,bw,bh,"前配偶者",false,false,true);
+  }
+  var kids=[];
+  if(S.otherChildren)for(var i=0;i<S.otherChildrenN;i++)kids.push("前配偶者の子"+(S.otherChildrenN>1?(i+1):""));
+  if(S.spouseChildren)for(var i=0;i<S.spouseChildrenN;i++)kids.push("子"+(S.spouseChildrenN>1?(i+1):""));
+  if(S.adopted)for(var i=0;i<S.adoptedN;i++)kids.push("養子"+(S.adoptedN>1?(i+1):""));
+  var cy=200,maxK=Math.min(kids.length,5);
+  if(maxK>0){
+    var tw=maxK*bw+(maxK-1)*8,sx2=selfX+bw/2-tw/2;
+    ln(selfX+bw/2,selfY+bh,selfX+bw/2,cy-8);
+    for(var i=0;i<maxK;i++){var kx=sx2+i*(bw+8);box(kx,cy,bw,bh,kids[i],isH1,false);ln(kx+bw/2,cy,selfX+bw/2,cy-8);}
+    if(kids.length>5){ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.textAlign="left";ctx.fillText("他"+(kids.length-5)+"人",sx2+maxK*(bw+8),cy+bh/2+3);}
+  }
+  if(S.outside&&(S.outsideRel+S.outsideNonRel>0)){
+    ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.textAlign="center";
+    ctx.fillText("遺贈: "+(S.outsideRel>0?"親族"+S.outsideRel+"人 ":"")+(S.outsideNonRel>0?"親族以外"+S.outsideNonRel+"人":""),W/2,H-10);
+  }
+}
+
+// ═══════════ チャート描画 ═══════════
+function drawPie(data){var c=document.getElementById("pie"),ctx=c.getContext("2d"),dpr=window.devicePixelRatio||1;c.width=320*dpr;c.height=170*dpr;c.style.width="320px";c.style.height="170px";ctx.scale(dpr,dpr);ctx.clearRect(0,0,320,170);var total=data.reduce(function(a,b){return a+b.v;},0);if(!total)return;var cx=100,cy=85,or=70,ir=42,ang=-Math.PI/2;for(var i=0;i<data.length;i++){var s=data[i].v/total*Math.PI*2;ctx.beginPath();ctx.moveTo(cx+Math.cos(ang)*ir,cy+Math.sin(ang)*ir);ctx.arc(cx,cy,or,ang,ang+s);ctx.arc(cx,cy,ir,ang+s,ang,true);ctx.closePath();ctx.fillStyle=data[i].c;ctx.fill();ang+=s;}document.getElementById("pie-legend").innerHTML=data.map(function(d){return'<span><span class="dot" style="background:'+d.c+'"></span>'+d.n+" "+Math.round(d.v/total*100)+"%</span>";}).join("");}
+function drawLine(data,maxY){var c=document.getElementById("line-chart"),ctx=c.getContext("2d"),dpr=window.devicePixelRatio||1,W=500,H=250;c.width=W*dpr;c.height=H*dpr;c.style.width=W+"px";c.style.height=H+"px";ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);var p={l:50,r:20,t:10,b:30},gw=W-p.l-p.r,gh=H-p.t-p.b;if(!maxY)maxY=Math.max.apply(null,data);if(!maxY)maxY=1;ctx.strokeStyle="#e2e8f0";ctx.lineWidth=1;for(var i=0;i<=4;i++){var y=p.t+gh-gh*(i/4);ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(W-p.r,y);ctx.stroke();ctx.fillStyle="#9ca3af";ctx.font="10px sans-serif";ctx.textAlign="right";ctx.fillText(Math.round(maxY*i/4)+"万",p.l-4,y+3);}var n=data.length;ctx.strokeStyle="#dc2626";ctx.lineWidth=2.5;ctx.beginPath();for(var i=0;i<n;i++){var x=p.l+gw*i/(n-1||1),y=p.t+gh-gh*(data[i]/maxY);if(!i)ctx.moveTo(x,y);else ctx.lineTo(x,y);}ctx.stroke();ctx.fillStyle="#9ca3af";ctx.font="10px sans-serif";ctx.textAlign="center";var step=Math.max(1,Math.floor(n/6));for(var i=0;i<n;i+=step)ctx.fillText(i+"年後",p.l+gw*i/(n-1||1),H-8);if((n-1)%step)ctx.fillText((n-1)+"年後",p.l+gw,H-8);}
+function drawBars(id,labels,values,colors){var c=document.getElementById(id),ctx=c.getContext("2d"),dpr=window.devicePixelRatio||1,W=c.getAttribute("width")|0||400,H=250;c.width=W*dpr;c.height=H*dpr;c.style.width=W+"px";c.style.height=H+"px";ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);var p={l:50,r:20,t:10,b:30},gw=W-p.l-p.r,gh=H-p.t-p.b,maxV=Math.max.apply(null,values);if(!maxV)maxV=1;var n=values.length,bw=Math.min(60,gw/n*.6);ctx.strokeStyle="#e2e8f0";ctx.lineWidth=1;for(var i=0;i<=4;i++){var y=p.t+gh-gh*(i/4);ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(W-p.r,y);ctx.stroke();ctx.fillStyle="#9ca3af";ctx.font="10px sans-serif";ctx.textAlign="right";ctx.fillText(Math.round(maxV*i/4)+"万",p.l-4,y+3);}for(var i=0;i<n;i++){var cx2=p.l+gw*(i+.5)/n,bh2=gh*(values[i]/maxV),x=cx2-bw/2,y=p.t+gh-bh2,r=6;ctx.fillStyle=colors[i];ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+bw-r,y);ctx.quadraticCurveTo(x+bw,y,x+bw,y+r);ctx.lineTo(x+bw,p.t+gh);ctx.lineTo(x,p.t+gh);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.fill();ctx.fillStyle="#1e293b";ctx.font="bold 11px sans-serif";ctx.textAlign="center";ctx.fillText(values[i].toLocaleString()+"万",cx2,y-5);ctx.fillStyle="#4b5563";ctx.font="11px sans-serif";ctx.fillText(labels[i],cx2,H-8);}}
+
+// ═══════════ 財産テーブル構築 ═══════════
+function buildAssetTable(){
+  var tb=document.getElementById("asset-tbody");
+  tb.innerHTML="";
+  ASSETS.forEach(function(a){
+    var tr=document.createElement("tr");
+    if(a.cat){
+      tr.className="at-cat"+(a.minus?" at-minus":"");
+      tr.innerHTML='<td colspan="3">'+a.cat+'</td>';
+    }else{
+      tr.className=a.minus?"at-minus":"";
+      var hint=a.hint?'<div class="at-hint">'+a.hint+'</div>':"";
+      tr.innerHTML='<td class="at-item">'+a.n+hint+'</td>'+
+        '<td><input type="number" id="'+a.id+'M" value="'+S[a.id+"M"]+'"></td>'+
+        '<td><input type="number" id="'+a.id+'T" value="'+S[a.id+"T"]+'"></td>';
+    }
+    tb.appendChild(tr);
+  });
+  ASSETS.forEach(function(a){
+    if(!a.id)return;
+    var mEl=document.getElementById(a.id+"M");
+    var tEl=document.getElementById(a.id+"T");
+    if(mEl)mEl.oninput=function(){S[a.id+"M"]=parseFloat(this.value)||0;update();};
+    if(tEl)tEl.oninput=function(){S[a.id+"T"]=parseFloat(this.value)||0;update();};
+  });
+}
+
+// ═══════════ UI構築 ═══════════
+function mkBtns(el,opts,cur,cb){
+  el.innerHTML="";
+  opts.forEach(function(o){
+    var b=document.createElement("button");
+    b.className="btn"+(cur===o.v?" on":"");
+    b.textContent=o.l;b.style.flex="1";
+    b.onclick=function(){cb(o.v);};
+    el.appendChild(b);
+  });
+}
+function mkNumBtns(el,max,cur,cb){
+  el.innerHTML="";el.classList.remove("hidden");
+  for(var n=1;n<=max;n++){
+    var b=document.createElement("button");
+    b.className="btn btn-sm"+(cur===n?" on":"");
+    b.textContent=n+"人";
+    b.onclick=(function(v){return function(){cb(v);};})(n);
+    el.appendChild(b);
+  }
+}
+
+function buildUI(){
+  var spExist=(S.spouse==="yes");
+  var spWas=(S.spouse==="was");
+
+  mkBtns(document.getElementById("q1-btns"),
+    [{v:"yes",l:"いる"},{v:"was",l:"いた（死別・離別）"},{v:"no",l:"いない（未婚）"}],
+    S.spouse,function(v){S.spouse=v;if(v!=="yes"){S.firstMarriage=true;S.spouseChildren=false;S.spouseChildrenN=0;}buildUI();update();});
+
+  var q2=document.getElementById("q2");
+  if(spExist){q2.classList.remove("hidden");
+    mkBtns(document.getElementById("q2-btns"),
+      [{v:true,l:"はい（初婚）"},{v:false,l:"いいえ（再婚等）"}],
+      S.firstMarriage,function(v){S.firstMarriage=v;buildUI();update();});
+  }else q2.classList.add("hidden");
+
+  var q3=document.getElementById("q3");
+  if(spExist){q3.classList.remove("hidden");
+    mkBtns(document.getElementById("q3-btns"),
+      [{v:true,l:"いる（死別・廃除・欠格含む）"},{v:false,l:"いない"}],
+      S.spouseChildren,function(v){S.spouseChildren=v;if(!v)S.spouseChildrenN=0;buildUI();update();});
+    var q3n=document.getElementById("q3-num");
+    if(S.spouseChildren)mkNumBtns(q3n,5,S.spouseChildrenN,function(v){S.spouseChildrenN=v;update();});
+    else{q3n.innerHTML="";q3n.classList.add("hidden");}
+  }else{q3.classList.add("hidden");S.spouseChildren=false;S.spouseChildrenN=0;}
+
+  var q4=document.getElementById("q4");
+  var stepN=spExist?4:(spWas?2:2);
+  document.getElementById("q4-n").textContent=stepN;
+  document.getElementById("q4-title").textContent=spExist?"配偶者以外に子どもはいますか？":"子どもはいますか？";
+  q4.classList.remove("hidden");
+  mkBtns(document.getElementById("q4-btns"),
+    [{v:true,l:"いる（死別・廃除・欠格含む）"},{v:false,l:"いない"}],
+    S.otherChildren,function(v){S.otherChildren=v;if(!v)S.otherChildrenN=0;buildUI();update();});
+  var q4n=document.getElementById("q4-num");
+  if(S.otherChildren)mkNumBtns(q4n,5,S.otherChildrenN,function(v){S.otherChildrenN=v;update();});
+  else{q4n.innerHTML="";q4n.classList.add("hidden");}
+
+  var q5=document.getElementById("q5");q5.classList.remove("hidden");
+  document.getElementById("q5-n").textContent=spExist?5:stepN+1;
+  mkBtns(document.getElementById("q5-btns"),
+    [{v:true,l:"いる（孫養子含む）"},{v:false,l:"いない"}],
+    S.adopted,function(v){S.adopted=v;if(!v)S.adoptedN=0;buildUI();update();});
+  var q5n=document.getElementById("q5-num");
+  if(S.adopted)mkNumBtns(q5n,5,S.adoptedN,function(v){S.adoptedN=v;update();});
+  else{q5n.innerHTML="";q5n.classList.add("hidden");}
+
+  var q6=document.getElementById("q6");q6.classList.remove("hidden");
+  var n6=spExist?6:stepN+2;
+  document.getElementById("q6-n").textContent=n6;
+  mkBtns(document.getElementById("q6-btns"),
+    [{v:true,l:"いる"},{v:false,l:"いない"}],
+    S.parents!=="none",function(v){if(!v)S.parents="none";else S.parents="both";buildUI();update();});
+  var q6d=document.getElementById("q6-detail");
+  if(S.parents!=="none"){q6d.classList.remove("hidden");q6d.innerHTML="";
+    [{v:"both",l:"両親ともに健在"},{v:"father",l:"父のみ"},{v:"mother",l:"母のみ"}].forEach(function(o){
+      var b=document.createElement("button");b.className="btn"+(S.parents===o.v?" on":"");b.textContent=o.l;b.style.flex="1";
+      b.onclick=function(){S.parents=o.v;buildUI();update();};q6d.appendChild(b);
+    });
+  }else{q6d.innerHTML="";q6d.classList.add("hidden");}
+
+  var q7=document.getElementById("q7");q7.classList.remove("hidden");
+  document.getElementById("q7-n").textContent=spExist?7:stepN+3;
+  mkBtns(document.getElementById("q7-btns"),
+    [{v:true,l:"いる（死別含む）"},{v:false,l:"いない"}],
+    S.siblings,function(v){S.siblings=v;if(!v)S.siblingsN=0;buildUI();update();});
+  var q7n=document.getElementById("q7-num");
+  if(S.siblings)mkNumBtns(q7n,5,S.siblingsN,function(v){S.siblingsN=v;update();});
+  else{q7n.innerHTML="";q7n.classList.add("hidden");}
+
+  var q8=document.getElementById("q8");q8.classList.remove("hidden");
+  document.getElementById("q8-n").textContent=spExist?8:stepN+4;
+  mkBtns(document.getElementById("q8-btns"),
+    [{v:true,l:"いる"},{v:false,l:"いない"}],
+    S.outside,function(v){S.outside=v;if(!v){S.outsideRel=0;S.outsideNonRel=0;}buildUI();update();});
+  var q8d=document.getElementById("q8-detail");
+  if(S.outside){q8d.classList.remove("hidden");
+    mkNumBtns(document.getElementById("q8-rel-num"),5,S.outsideRel,function(v){S.outsideRel=v;update();});
+    mkNumBtns(document.getElementById("q8-nonrel-num"),5,S.outsideNonRel,function(v){S.outsideNonRel=v;update();});
+  }else{q8d.classList.add("hidden");}
+
+  var tabs=document.getElementById("tabs");tabs.innerHTML="";
+  ["暦年贈与","生命保険活用","組み合わせ効果"].forEach(function(t,i){
+    var b=document.createElement("button");b.className="tab"+(S.tab===i?" active":"");b.textContent=t;
+    b.onclick=function(){S.tab=i;buildUI();update();};tabs.appendChild(b);
+  });
+}
+
+// ═══════════ 全体更新 ═══════════
+function update(){
+  var r=calc(),h=r.h;
+  document.getElementById("d-heirs").textContent=r.nh+"人";
+  document.getElementById("d-rank").textContent=h.rankLabel;
+  document.getElementById("d-basic").textContent=fmt(r.bd);
+  document.getElementById("d-insex").textContent=fmt(r.insEx);
+  document.getElementById("d-deathex").textContent=fmt(r.deathEx);
+  var hn=document.getElementById("heir-note");
+  if(h.desc){hn.style.display="block";hn.innerHTML=h.desc;}else hn.style.display="none";
+  drawTree(h);
+
+  var notes=document.getElementById("asset-notes");
+  if(r.nh>0){
+    notes.style.display="block";
+    notes.innerHTML="<b>生命保険金の非課税枠:</b> "+fmt(r.insEx)+"（500万 × "+r.nh+"人）<br>"+
+      "<b>死亡退職金の非課税枠:</b> "+fmt(r.deathEx)+"（500万 × "+r.nh+"人）";
+  }else{notes.style.display="none";}
+
+  document.getElementById("d-total-m").textContent=fmt(r.totalM);
+  document.getElementById("d-total-t").textContent=fmt(r.totalT);
+
+  document.getElementById("d-net").textContent=fmt(r.net);
+  document.getElementById("d-basic2").textContent=fmt(r.bd);
+  document.getElementById("d-taxable").textContent=fmt(r.taxable);
+  document.getElementById("d-remain-ins").textContent=fmt(r.remainIns);
+  document.getElementById("d-remain-death").textContent=fmt(r.remainDeath);
+  document.getElementById("d-total-m2").textContent=fmt(r.totalM);
+
+  var tb=document.getElementById("tax-box");tb.className=r.curTax>0?"tax-big tax-red":"tax-big tax-green";
+  document.getElementById("d-tax").textContent=fmt(r.curTax);
+  document.getElementById("d-tax-note").textContent=r.curTax===0?"基礎控除内のため相続税は発生しません":"※配偶者の税額軽減・小規模宅地特例等の適用前の概算値";
+  drawPie(r.breakdown);
+
+  document.getElementById("sim-section").style.display=r.curTax>0?"block":"none";
+  document.getElementById("zero-msg").style.display=(r.curTax===0&&r.net>0)?"block":"none";
+  document.getElementById("d-zero-msg").textContent="財産が基礎控除額（"+fmt(r.bd)+"）以内のため相続税はゼロです。";
+  document.getElementById("d-cur-tax2").textContent=fmt(r.curTax);
+
+  document.getElementById("tab0").style.display=S.tab===0?"grid":"none";
+  document.getElementById("tab1").style.display=S.tab===1?"grid":"none";
+  document.getElementById("tab2").style.display=S.tab===2?"block":"none";
+
+  document.getElementById("d-gift-amt").textContent=S.giftAmt.toLocaleString()+"万円/年";
+  document.getElementById("d-gift-yr").textContent=S.giftYr+"年間";
+  document.getElementById("d-total-gift").textContent=fmt(r.tGift);
+  document.getElementById("d-after-gift").textContent=fmt(r.gTax);
+  document.getElementById("d-gift-save").textContent="▼"+fmt(r.gSave);
+  document.getElementById("d-gift-pct").textContent="削減率 "+(r.curTax>0?(r.gSave/r.curTax*100).toFixed(1):0)+"%";
+  drawLine(r.tl,r.tl[0]||1);
+
+  document.getElementById("d-ins-cap-label").textContent="非課税枠合計（500万×"+r.nh+"人）";
+  document.getElementById("d-ins-cap").textContent=fmt(r.insEx);
+  document.getElementById("d-ins-cur").textContent=fmt(S.liT*1e4);
+  document.getElementById("d-ins-remain").textContent=fmt(r.remainIns);
+  document.getElementById("ins-bar").style.width=Math.min(100,(S.liT*1e4/Math.max(1,r.insEx))*100)+"%";
+  document.getElementById("d-eff-ins").textContent=fmt(r.effIns);
+  document.getElementById("d-after-ins").textContent=fmt(r.iTax);
+  document.getElementById("d-ins-save").textContent="▼"+fmt(r.iSave);
+  document.getElementById("d-ins-pct").textContent="削減率 "+(r.curTax>0?(r.iSave/r.curTax*100).toFixed(1):0)+"%";
+  var iw=document.getElementById("ins-warn");
+  if(r.effIns<S.addIns*1e4){iw.style.display="block";iw.textContent="※非課税枠上限（"+fmt(r.remainIns)+"）超過分は課税対象";}else iw.style.display="none";
+  drawBars("bar1",["現状","保険活用後"],[Math.round(r.curTax/1e4),Math.round(r.iTax/1e4)],["#dc2626","#16a34a"]);
+
+  document.getElementById("d-c-cur").textContent=fmt(r.curTax);
+  document.getElementById("d-c-g-label").textContent="贈与のみ（"+S.giftYr+"年）";
+  document.getElementById("d-c-gift").textContent=fmt(r.gTax);document.getElementById("d-c-gs").textContent="▼"+fmt(r.gSave);
+  document.getElementById("d-c-ins").textContent=fmt(r.iTax);document.getElementById("d-c-is").textContent="▼"+fmt(r.iSave);
+  document.getElementById("d-c-comb").textContent=fmt(r.cTax);document.getElementById("d-c-cs").textContent="▼"+fmt(r.cSave);
+  document.getElementById("d-hero-val").textContent=fmt(r.cTax);
+  document.getElementById("d-hero-save").textContent=fmt(r.cSave);
+  document.getElementById("d-hero-pct").textContent="削減率 "+(r.curTax>0?(r.cSave/r.curTax*100).toFixed(1):0)+"%";
+  drawBars("bar2",["現状","贈与のみ","保険のみ","組み合わせ"],[Math.round(r.curTax/1e4),Math.round(r.gTax/1e4),Math.round(r.iTax/1e4),Math.round(r.cTax/1e4)],["#dc2626","#f97316","#3b82f6","#16a34a"]);
+}
+
+function bindSliders(){
+  document.getElementById("sl-gift").oninput=function(){S.giftAmt=+this.value;update();};
+  document.getElementById("sl-yr").oninput=function(){S.giftYr=+this.value;update();};
+  document.getElementById("in-add-ins").oninput=function(){S.addIns=parseFloat(this.value)||0;update();};
+}
+
+// ═══════════ 初期化 ═══════════
+buildAssetTable();
+buildUI();
+bindSliders();
+update();
+</script>
+</body>
+</html>
