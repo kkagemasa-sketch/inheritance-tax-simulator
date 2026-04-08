@@ -164,6 +164,15 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div class="num-row hidden" id="q4-num" style="align-items:center"><span style="font-size:12px;margin-left:26px">人数</span><input type="number" id="q4-input" min="1" max="20" value="1" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
 </div>
 
+<!-- Q4b 代襲相続 -->
+<div class="q-step hidden" id="q4b">
+<div class="q-label"><span class="q-num" id="q4b-n">-</span>上記の子のうち、既に亡くなった子（代襲相続）はいますか？</div>
+<div class="q-sub">亡くなった子に代わりその子（孫）が相続人になります</div>
+<div class="btn-row" id="q4b-btns"></div>
+<div class="num-row hidden" id="q4b-num" style="align-items:center"><span style="font-size:12px;margin-left:26px">亡くなった子の人数</span><input type="number" id="q4b-input" min="1" max="20" value="1" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
+<div class="num-row hidden" id="q4b-grandnum" style="align-items:center;margin-top:6px"><span style="font-size:12px;margin-left:26px">代襲相続する孫の合計人数</span><input type="number" id="q4b-ginput" min="1" max="20" value="1" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
+</div>
+
 <!-- Q5 養子 -->
 <div class="q-step hidden" id="q5">
 <div class="q-label"><span class="q-num" id="q5-n">5</span>養子はいますか？</div>
@@ -365,6 +374,7 @@ var S={
   spouse:"yes",firstMarriage:true,
   spouseChildren:false,spouseChildrenN:0,
   otherChildren:false,otherChildrenN:0,
+  hasDaishuu:false,daishuu:0,daishuu_grandch:0,
   adopted:false,adoptedN:0,
   parents:"none",
   siblings:false,siblingsN:0,
@@ -384,24 +394,32 @@ function debouncedUpdate(){clearTimeout(_debTimer);_debTimer=setTimeout(update,8
 var BK=[[1e7,.10,0],[3e7,.15,5e5],[5e7,.20,2e6],[1e8,.30,7e6],[2e8,.40,17e6],[3e8,.45,27e6],[6e8,.50,42e6],[Infinity,.55,72e6]];
 function taxOn(a){if(a<=0)return 0;for(var i=0;i<BK.length;i++)if(a<=BK[i][0])return Math.max(0,a*BK[i][1]-BK[i][2]);return 0;}
 
-// ═══════════ 贈与税速算表（一般贈与） ═══════════
-var GBK=[[2e6,.10,0],[3e6,.15,1e5],[4e6,.20,25e4],[6e6,.30,65e4],[1e7,.40,125e4],[15e6,.45,175e4],[3e7,.50,25e5],[Infinity,.55,4e6]];
-function giftTaxOn(amt){
+// ═══════════ 贈与税速算表 ═══════════
+// 特例贈与（直系尊属→18歳以上）: 親→子の贈与を想定
+var GBK_SP=[[2e6,.10,0],[4e6,.15,1e5],[6e6,.20,3e5],[1e7,.30,9e5],[15e6,.40,19e5],[3e7,.45,265e4],[45e6,.50,415e4],[Infinity,.55,64e5]];
+// 一般贈与
+var GBK_GN=[[2e6,.10,0],[3e6,.15,1e5],[4e6,.20,25e4],[6e6,.30,65e4],[1e7,.40,125e4],[15e6,.45,175e4],[3e7,.50,25e5],[Infinity,.55,4e6]];
+function giftTaxOn(amt,special){
   var base=amt-110e4;
   if(base<=0)return 0;
-  for(var i=0;i<GBK.length;i++)if(base<=GBK[i][0])return Math.max(0,base*GBK[i][1]-GBK[i][2]);
+  var tbl=(special!==false)?GBK_SP:GBK_GN;
+  for(var i=0;i<tbl.length;i++)if(base<=tbl[i][0])return Math.max(0,base*tbl[i][1]-tbl[i][2]);
   return 0;
 }
 
 // ═══════════ 法定相続人判定 ═══════════
 function getHeirs(){
   var sp=(S.spouse==="yes")?1:0;
-  var realCh=(S.spouseChildren?S.spouseChildrenN:0)+(S.otherChildren?S.otherChildrenN:0);
+  var livingCh=(S.spouseChildren?S.spouseChildrenN:0)+(S.otherChildren?S.otherChildrenN:0);
+  var deadCh=S.hasDaishuu?S.daishuu:0;
+  var grandCh=S.hasDaishuu?S.daishuu_grandch:0;
+  var realCh=livingCh+deadCh; // 実子の総数（代襲含む）
   var adoptCh=S.adopted?S.adoptedN:0;
-  var totalCh=realCh+adoptCh;
+  var totalCh=livingCh+grandCh+adoptCh; // 実際の相続人候補
   var adoptLimit=realCh>0?1:2;
   var adoptCount=Math.min(adoptCh,adoptLimit);
-  var taxCh=realCh+adoptCount;
+  // 法定相続人数: 生存実子 + 代襲孫 + 養子（制限後）
+  var taxCh=livingCh+grandCh+adoptCount;
 
   var pa=0;
   if(S.parents==="both")pa=2;else if(S.parents==="father"||S.parents==="mother")pa=1;
@@ -414,6 +432,7 @@ function getHeirs(){
     var parts=[];
     if(S.spouseChildren&&S.spouseChildrenN>0)parts.push("現配偶者の子"+S.spouseChildrenN+"人");
     if(S.otherChildren&&S.otherChildrenN>0)parts.push("前配偶者等の子"+S.otherChildrenN+"人");
+    if(deadCh>0&&grandCh>0)parts.push("代襲相続人（孫）"+grandCh+"人");
     if(adoptCh>0)parts.push("養子"+adoptCh+"人"+(adoptCh>adoptCount?"(税法上"+adoptCount+"人算入)":""));
     desc="<b>第1順位（子）</b>が適用されます。"+parts.join("、")+"。";
     if(sp)desc+="<br>法定相続分：配偶者 1/2、子（全員で）1/2を均等分割";
@@ -445,16 +464,19 @@ function calcTax(taxable,h,applySpRelief){
   var total=spTax+otTax;
   var spRelief=0;
   if(applySpRelief&&h.spSh>0&&total>0){
-    // 配偶者の税額軽減: 法定相続分 or 1.6億円の大きい方まで非課税
-    var spLegalShare=taxable*h.spSh;
-    var reliefLimit=Math.max(16e7,spLegalShare);
-    // 配偶者の課税価格（法定相続分で取得と仮定）
-    var spAcquired=spLegalShare;
-    // 軽減対象額 = min(配偶者取得額, 軽減上限)
-    var reliefBase=Math.min(spAcquired,reliefLimit);
-    // 軽減税額 = 相続税総額 × (軽減対象額 / 課税遺産総額)
-    spRelief=Math.floor(total*(reliefBase/(taxable||1)));
-    spRelief=Math.min(spRelief,total);
+    // ── 配偶者の税額軽減（相続税法19条の2）──
+    // (A) 配偶者の実際の取得額（本ツールでは法定相続分で取得と仮定）
+    var spAcquired=taxable*h.spSh;
+    // (B) 軽減上限 = max(1億6,000万円, 配偶者の法定相続分相当額)
+    var reliefCap=Math.max(16e7,taxable*h.spSh);
+    // (C) 軽減対象の課税価格 = min(A, B)
+    //     法定相続分取得の場合 A≤B は常に成立するため spAcquired がそのまま使われる
+    var reliefBase=Math.min(spAcquired,reliefCap);
+    // (D) 配偶者の按分税額 = 相続税総額 × (C / 課税価格の合計)
+    //     ※ 課税価格の合計 ≒ 課税遺産総額（本ツールの簡略化）
+    var spProportionTax=Math.floor(total*(reliefBase/(taxable||1)));
+    // (E) 軽減額 = min(D, 相続税総額)
+    spRelief=Math.min(spProportionTax,total);
   }
   return{total:total,spTax:spTax,otTax:otTax,spRelief:spRelief,afterRelief:total-spRelief};
 }
@@ -531,13 +553,31 @@ function calc(){
   var totalM=(S.hLM+S.hBM+S.bLM+S.bBM+S.oLM+S.oBM+S.csM+S.lsM+S.dpM+S.dbM+S.liM+S.lcM+S.oaM-S.dtM)*1e4;
   var totalT=(S.hLT+S.hBT+S.bLT+S.bBT+S.oLT+S.oBT+S.csT+S.lsT+S.dpT+S.dbT+S.liT+S.lcT+S.oaT-S.dtT)*1e4;
 
-  var tGift=S.giftYr*S.giftAmt*1e4;
-  var clawbackYr=Math.min(S.giftYr,7);
-  var clawback=clawbackYr*S.giftAmt*1e4;
+  var giftPerYr=S.giftAmt*1e4;
+  var tGift=S.giftYr*giftPerYr;
+
+  // 持ち戻し計算ヘルパー: 贈与年数iに対する(持ち戻し額, 贈与税額控除)
+  function clawbackCalc(yr){
+    var cb=0,gtc=0;
+    // 1-3年目: 全額加算
+    var yr13=Math.min(yr,3);
+    cb+=yr13*giftPerYr;
+    gtc+=yr13*giftTaxOn(giftPerYr);
+    // 4-7年目: 年100万円控除後を加算
+    if(yr>3){
+      var yr47=Math.min(yr-3,4);
+      var cbPerYr47=Math.max(0,giftPerYr-1e6);
+      cb+=yr47*cbPerYr47;
+      gtc+=yr47*giftTaxOn(giftPerYr);
+    }
+    return{cb:cb,gtc:gtc};
+  }
+
+  var cbr=clawbackCalc(Math.min(S.giftYr,7));
+  var clawback=cbr.cb;
+  var paidGiftTax=cbr.gtc;
   var effectiveGift=tGift-clawback;
   var gNet=net-effectiveGift;
-  // 贈与税額控除: 持ち戻し対象年数分の既払い贈与税を相続税から控除
-  var paidGiftTax=clawbackYr*giftTaxOn(S.giftAmt*1e4);
   var gTaxRaw=calcTax(Math.max(0,Math.max(0,gNet)-bd),h,spOk).afterRelief;
   var gTax=Math.max(0,gTaxRaw-paidGiftTax);
 
@@ -550,12 +590,11 @@ function calc(){
 
   var tl=[];
   for(var i=0;i<=Math.min(S.giftYr,30);i++){
-    var g=i*S.giftAmt*1e4;
-    var cbI=Math.min(i,7);
-    var eg=g-cbI*S.giftAmt*1e4;
-    var pgT=cbI*giftTaxOn(S.giftAmt*1e4);
+    var g=i*giftPerYr;
+    var ci=clawbackCalc(Math.min(i,7));
+    var eg=g-ci.cb;
     var raw=calcTax(Math.max(0,Math.max(0,net-eg)-bd),h,spOk).afterRelief;
-    tl.push(Math.round(Math.max(0,raw-pgT)/1e4));
+    tl.push(Math.round(Math.max(0,raw-ci.gtc)/1e4));
   }
 
   var breakdown=[
@@ -805,8 +844,31 @@ function buildUI(){
     if(!S.otherChildrenN)S.otherChildrenN=1;
   }else{q4n.classList.add("hidden");}
 
+  // Q4b 代襲相続
+  var hasAnyCh=(S.spouseChildren&&S.spouseChildrenN>0)||(S.otherChildren&&S.otherChildrenN>0);
+  var q4b=document.getElementById("q4b");
+  if(hasAnyCh){
+    q4b.classList.remove("hidden");
+    document.getElementById("q4b-n").textContent=spExist?stepN+1:stepN+1;
+    mkBtns(document.getElementById("q4b-btns"),
+      [{v:true,l:"いる"},{v:false,l:"いない"}],
+      S.hasDaishuu,function(v){S.hasDaishuu=v;if(!v){S.daishuu=0;S.daishuu_grandch=0;}buildUI();update();});
+    var q4bn=document.getElementById("q4b-num");
+    var q4bgn=document.getElementById("q4b-grandnum");
+    if(S.hasDaishuu){
+      q4bn.classList.remove("hidden");q4bgn.classList.remove("hidden");
+      var q4bi=document.getElementById("q4b-input");q4bi.value=S.daishuu||1;
+      q4bi.oninput=function(){S.daishuu=Math.max(1,parseInt(this.value)||1);update();};
+      if(!S.daishuu)S.daishuu=1;
+      var q4bgi=document.getElementById("q4b-ginput");q4bgi.value=S.daishuu_grandch||1;
+      q4bgi.oninput=function(){S.daishuu_grandch=Math.max(1,parseInt(this.value)||1);update();};
+      if(!S.daishuu_grandch)S.daishuu_grandch=1;
+    }else{q4bn.classList.add("hidden");q4bgn.classList.add("hidden");}
+  }else{q4b.classList.add("hidden");S.hasDaishuu=false;S.daishuu=0;S.daishuu_grandch=0;}
+
+  var q5StepN=spExist?(hasAnyCh?stepN+2:stepN+1):(hasAnyCh?stepN+2:stepN+1);
   var q5=document.getElementById("q5");q5.classList.remove("hidden");
-  document.getElementById("q5-n").textContent=spExist?5:stepN+1;
+  document.getElementById("q5-n").textContent=q5StepN;
   mkBtns(document.getElementById("q5-btns"),
     [{v:true,l:"いる（孫養子含む）"},{v:false,l:"いない"}],
     S.adopted,function(v){S.adopted=v;if(!v)S.adoptedN=0;buildUI();update();});
@@ -1049,8 +1111,9 @@ function calc2nd(){
     document.getElementById("second-section").style.display="none";return;
   }
   document.getElementById("second-section").style.display="block";
-  // 配偶者の法定相続分取得額
-  var spGet=Math.round(r.net*h.spSh);
+  // 配偶者の法定相続分取得額（小規模宅地特例控除前の正味遺産ベース）
+  var netBeforeLand=r.net+r.landReduce;
+  var spGet=Math.round(netBeforeLand*h.spSh);
   document.getElementById("d-2nd-sp-get").textContent=fmt(spGet);
   // 配偶者固有財産
   var spOwn=parseInput(document.getElementById("in-sp-own").value)*1e4;
