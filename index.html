@@ -47,8 +47,9 @@ body{font-family:-apple-system,"Hiragino Sans","Noto Sans JP","Meiryo",sans-seri
 .asset-tbl tr.at-minus td{background:#fef2f2}
 .asset-tbl td.at-item{padding-left:12px;font-weight:500;line-height:1.3}
 .asset-tbl .at-hint{font-size:10px;color:#6b7280;font-weight:400}
-.asset-tbl input[type=number]{width:100%;border:1px solid #d1d5db;border-radius:6px;padding:5px 6px;text-align:right;font-size:12px;outline:none;font-family:inherit}
-.asset-tbl input[type=number]:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.asset-tbl input[type=text]{width:100%;border:1px solid #d1d5db;border-radius:6px;padding:5px 6px;text-align:right;font-size:12px;outline:none;font-family:inherit}
+.asset-tbl input[type=text]:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.asset-tbl input.has-hint{border-color:#93c5fd;background:#f0f9ff}
 .asset-total{display:flex;justify-content:space-between;background:#f8fafc;border-radius:8px;padding:8px 12px;margin-top:8px;font-size:12px;font-weight:700;color:#1e3a8a}
 .asset-total .at-sub{font-size:10px;color:#6b7280;font-weight:400}
 .asset-notes{background:#eff6ff;border-radius:8px;padding:8px 10px;margin-top:8px;font-size:11px;color:#1e40af;line-height:1.6}
@@ -57,8 +58,8 @@ body{font-family:-apple-system,"Hiragino Sans","Noto Sans JP","Meiryo",sans-seri
 label.field{display:block;font-size:12px;font-weight:600;color:#374151;margin:8px 0 3px}
 .field-sub{font-size:11px;color:#2563eb;margin-bottom:3px}
 .input-row{display:flex;align-items:center;gap:6px;margin-bottom:6px}
-.input-row input[type=number]{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:7px 10px;text-align:right;font-size:13px;outline:none;font-family:inherit}
-.input-row input[type=number]:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
+.input-row input[type=text],.input-row input[type=number]{flex:1;border:1px solid #d1d5db;border-radius:8px;padding:7px 10px;text-align:right;font-size:13px;outline:none;font-family:inherit}
+.input-row input[type=text]:focus,.input-row input[type=number]:focus{border-color:#3b82f6;box-shadow:0 0 0 2px rgba(59,130,246,.15)}
 .input-row .unit{font-size:12px;color:#6b7280;white-space:nowrap}
 /* 結果カード */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
@@ -264,7 +265,7 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 </div><div><h4 style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">贈与年数と相続税の推移</h4><canvas id="line-chart" width="500" height="260"></canvas></div></div>
 <div id="tab1" style="display:none" class="grid2"><div>
 <div class="ins-status"><h4>生命保険 非課税枠の状況</h4><div class="result-row"><span class="rk" id="d-ins-cap-label"></span><span class="rv" id="d-ins-cap"></span></div><div class="result-row"><span class="rk">既存の死亡保険金</span><span class="rv" id="d-ins-cur"></span></div><hr style="border:none;border-top:1px solid #bfdbfe;margin:6px 0 8px"><div class="result-total"><span class="rt-label" style="color:#1e40af">残り非課税枠</span><span class="rt-val" style="color:#1e3a8a" id="d-ins-remain"></span></div><div class="progress-bg"><div class="progress-fill" id="ins-bar"></div></div><div class="progress-labels"><span>使用済</span><span>非課税枠満枠</span></div></div>
-<label class="field">追加加入する保険金額（一時払終身保険など）</label><div class="input-row"><input type="number" id="in-add-ins" value="0"><span class="unit">万円</span></div><div id="ins-warn" style="font-size:11px;color:#ea580c;margin:-2px 0 8px;display:none"></div>
+<label class="field">追加加入する保険金額（一時払終身保険など）</label><div class="input-row"><input type="text" inputmode="numeric" id="in-add-ins" value="0"><span class="unit">万円</span></div><div id="ins-warn" style="font-size:11px;color:#ea580c;margin:-2px 0 8px;display:none"></div>
 <div class="result-box green-box"><div class="result-row"><span class="rk">非課税適用額</span><span class="rv" id="d-eff-ins"></span></div><div class="result-row"><span class="rk">保険加入後の相続税</span><span class="rv" id="d-after-ins"></span></div><hr><div class="result-total"><span class="rt-label">節税効果</span><span class="rt-val" id="d-ins-save"></span></div><div class="result-pct" id="d-ins-pct"></div></div>
 <div class="tip"><b>ポイント：</b>課税される現預金を一時払終身保険に変換し、非課税枠を活用。受取人が直接受け取るため遺産分割協議不要のメリットも。</div>
 </div><div><h4 style="font-size:12px;font-weight:600;color:#374151;margin-bottom:6px">相続税の比較（保険活用前後）</h4><canvas id="bar1" width="400" height="260"></canvas></div></div>
@@ -287,12 +288,12 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 // ═══════════ 財産カテゴリ定義 ═══════════
 var ASSETS=[
   {cat:"不動産"},
-  {id:"hL",n:"自宅用の土地",hint:"路線価方式 / 倍率方式で評価",m:0,t:0},
-  {id:"hB",n:"自宅用の建物",hint:"固定資産税評価額で評価",m:0,t:0},
-  {id:"bL",n:"事業用の土地",hint:"路線価方式 / 倍率方式で評価",m:0,t:0},
-  {id:"bB",n:"事業用の建物",hint:"固定資産税評価額で評価",m:0,t:0},
-  {id:"oL",n:"その他の土地",hint:"",m:0,t:0},
-  {id:"oB",n:"その他の建物",hint:"",m:0,t:0},
+  {id:"hL",n:"自宅用の土地",hint:"路線価方式 / 倍率方式で評価",m:0,t:0,ratio:0.8},
+  {id:"hB",n:"自宅用の建物",hint:"固定資産税評価額で評価",m:0,t:0,ratio:0.7},
+  {id:"bL",n:"事業用の土地",hint:"路線価方式 / 倍率方式で評価",m:0,t:0,ratio:0.8},
+  {id:"bB",n:"事業用の建物",hint:"固定資産税評価額で評価",m:0,t:0,ratio:0.7},
+  {id:"oL",n:"その他の土地",hint:"",m:0,t:0,ratio:0.8},
+  {id:"oB",n:"その他の建物",hint:"",m:0,t:0,ratio:0.7},
   {cat:"株式・有価証券"},
   {id:"cs",n:"自社株（出資評価額）",hint:"類似業種比準 / 純資産価額等",m:0,t:0},
   {id:"ls",n:"上場株式・有価証券",hint:"",m:0,t:0},
@@ -569,6 +570,9 @@ function drawLine(data,maxY){var c=document.getElementById("line-chart"),ctx=c.g
 function drawBars(id,labels,values,colors){var c=document.getElementById(id),ctx=c.getContext("2d"),dpr=window.devicePixelRatio||1,W=c.getAttribute("width")|0||400,H=250;c.width=W*dpr;c.height=H*dpr;c.style.width=W+"px";c.style.height=H+"px";ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);var p={l:50,r:20,t:10,b:30},gw=W-p.l-p.r,gh=H-p.t-p.b,maxV=Math.max.apply(null,values);if(!maxV)maxV=1;var n=values.length,bw=Math.min(60,gw/n*.6);ctx.strokeStyle="#e2e8f0";ctx.lineWidth=1;for(var i=0;i<=4;i++){var y=p.t+gh-gh*(i/4);ctx.beginPath();ctx.moveTo(p.l,y);ctx.lineTo(W-p.r,y);ctx.stroke();ctx.fillStyle="#9ca3af";ctx.font="10px sans-serif";ctx.textAlign="right";ctx.fillText(Math.round(maxV*i/4)+"万",p.l-4,y+3);}for(var i=0;i<n;i++){var cx2=p.l+gw*(i+.5)/n,bh2=gh*(values[i]/maxV),x=cx2-bw/2,y=p.t+gh-bh2,r=6;ctx.fillStyle=colors[i];ctx.beginPath();ctx.moveTo(x+r,y);ctx.lineTo(x+bw-r,y);ctx.quadraticCurveTo(x+bw,y,x+bw,y+r);ctx.lineTo(x+bw,p.t+gh);ctx.lineTo(x,p.t+gh);ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.fill();ctx.fillStyle="#1e293b";ctx.font="bold 11px sans-serif";ctx.textAlign="center";ctx.fillText(values[i].toLocaleString()+"万",cx2,y-5);ctx.fillStyle="#4b5563";ctx.font="11px sans-serif";ctx.fillText(labels[i],cx2,H-8);}}
 
 // ═══════════ 財産テーブル構築 ═══════════
+function fmtInput(v){if(!v&&v!==0)return"";v=Math.round(v);return v.toLocaleString();}
+function parseInput(s){return parseFloat(String(s).replace(/,/g,""))||0;}
+
 function buildAssetTable(){
   var tb=document.getElementById("asset-tbody");
   tb.innerHTML="";
@@ -580,9 +584,10 @@ function buildAssetTable(){
     }else{
       tr.className=a.minus?"at-minus":"";
       var hint=a.hint?'<div class="at-hint">'+a.hint+'</div>':"";
+      var mVal=S[a.id+"M"],tVal=S[a.id+"T"];
       tr.innerHTML='<td class="at-item">'+a.n+hint+'</td>'+
-        '<td><input type="number" id="'+a.id+'M" value="'+S[a.id+"M"]+'"></td>'+
-        '<td><input type="number" id="'+a.id+'T" value="'+S[a.id+"T"]+'"></td>';
+        '<td><input type="text" inputmode="numeric" id="'+a.id+'M" value="'+(mVal?fmtInput(mVal):"")+'"></td>'+
+        '<td><input type="text" inputmode="numeric" id="'+a.id+'T" value="'+(tVal?fmtInput(tVal):"")+'"></td>';
     }
     tb.appendChild(tr);
   });
@@ -590,8 +595,33 @@ function buildAssetTable(){
     if(!a.id)return;
     var mEl=document.getElementById(a.id+"M");
     var tEl=document.getElementById(a.id+"T");
-    if(mEl)mEl.oninput=function(){S[a.id+"M"]=parseFloat(this.value)||0;update();};
-    if(tEl)tEl.oninput=function(){S[a.id+"T"]=parseFloat(this.value)||0;update();};
+    function bind(el,key,isMarket){
+      el.onfocus=function(){this.value=String(S[key]||"");this.select();};
+      el.onblur=function(){
+        var v=parseInput(this.value);
+        if(!a.minus&&v<0)v=0;
+        S[key]=v;
+        this.value=v?fmtInput(v):"";
+        if(isMarket&&a.ratio){
+          var tKey=a.id+"T";
+          var tE=document.getElementById(a.id+"T");
+          if(!S[tKey]&&v>0){
+            var suggest=Math.round(v*a.ratio);
+            S[tKey]=suggest;
+            tE.value=fmtInput(suggest);
+            tE.classList.add("has-hint");
+          }
+        }
+        update();
+      };
+      el.oninput=function(){
+        var raw=this.value.replace(/[^0-9.\-]/g,"");
+        S[key]=parseFloat(raw)||0;
+        update();
+      };
+    }
+    if(mEl)bind(mEl,a.id+"M",true);
+    if(tEl)bind(tEl,a.id+"T",false);
   });
 }
 
@@ -797,7 +827,10 @@ function update(){
 function bindSliders(){
   document.getElementById("sl-gift").oninput=function(){S.giftAmt=+this.value;update();};
   document.getElementById("sl-yr").oninput=function(){S.giftYr=+this.value;update();};
-  document.getElementById("in-add-ins").oninput=function(){S.addIns=parseFloat(this.value)||0;update();};
+  var insEl=document.getElementById("in-add-ins");
+  insEl.onfocus=function(){this.value=String(S.addIns||"");this.select();};
+  insEl.onblur=function(){var v=parseInput(this.value);if(v<0)v=0;S.addIns=v;this.value=v?fmtInput(v):"";update();};
+  insEl.oninput=function(){S.addIns=parseInput(this.value);update();};
 }
 
 // ═══════════ 初期化 ═══════════
