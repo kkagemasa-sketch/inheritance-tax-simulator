@@ -466,18 +466,43 @@ function drawTree(h){
   if(S.parents!=="none"){
     var hasFa=(S.parents==="both"||S.parents==="father");
     var hasMo=(S.parents==="both"||S.parents==="mother");
-    if(hasFa){var fx=W/2-bw-16;box(fx,py,bw,bh,"父",isH2,false);ln(fx+bw/2,py+bh,selfX+bw/2,selfY);}
-    if(hasMo){var mx=W/2+16;box(mx,py,bw,bh,"母",isH2,false);ln(mx+bw/2,py+bh,selfX+bw/2,selfY);}
-    if(hasFa&&hasMo)ln(W/2-bw-16+bw,py+bh/2,W/2+16,py+bh/2);
+    var fx=W/2-bw-16,mx2=W/2+16;
+    if(hasFa)box(fx,py,bw,bh,"父",isH2,false);
+    if(hasMo)box(mx2,py,bw,bh,"母",isH2,false);
+    if(hasFa&&hasMo){
+      ln(fx+bw,py+bh/2,mx2,py+bh/2);
+      var pmid=W/2;
+      ln(pmid,py+bh/2,pmid,selfY);
+    }else if(hasFa){
+      ln(fx+bw/2,py+bh,fx+bw/2,selfY);
+    }else{
+      ln(mx2+bw/2,py+bh,mx2+bw/2,selfY);
+    }
   }
   if(S.siblings&&S.siblingsN>0){
     var sn=Math.min(S.siblingsN,3);
-    for(var i=0;i<sn;i++){var sx=selfX-80-(sn-1-i)*70;box(sx,selfY,bw,bh,"兄弟"+(S.siblingsN>1?(i+1):""),isH3,false);ln(sx+bw/2,selfY,selfX,selfY+bh/2);}
-    if(S.siblingsN>3){ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.textAlign="left";ctx.fillText("他"+(S.siblingsN-3)+"人",selfX-80+bw+4,selfY+bh/2+3);}
+    var sibBarY=S.parents!=="none"?selfY:selfY-14;
+    for(var i=0;i<sn;i++){
+      var sx=selfX-80-(sn-1-i)*70;
+      box(sx,selfY,bw,bh,"兄弟"+(S.siblingsN>1?(i+1):""),isH3,false);
+      ln(sx+bw/2,selfY,sx+bw/2,sibBarY);
+    }
+    ln(selfX+bw/2,selfY,selfX+bw/2,sibBarY);
+    var leftSib=selfX-80-(sn-1)*70;
+    ln(leftSib+bw/2,sibBarY,selfX+bw/2,sibBarY);
+    if(S.parents!=="none"){
+      var hasFa2=(S.parents==="both"||S.parents==="father");
+      var hasMo2=(S.parents==="both"||S.parents==="mother");
+      var parentDropX=(hasFa2&&hasMo2)?W/2:hasFa2?(W/2-bw-16+bw/2):(W/2+16+bw/2);
+      ln(parentDropX,py+bh/2+(hasFa2&&hasMo2?0:bh/2),parentDropX,sibBarY);
+      if(parentDropX!==selfX+bw/2)ln(parentDropX,sibBarY,selfX+bw/2,sibBarY);
+    }
+    if(S.siblingsN>3){ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.textAlign="left";ctx.fillText("他"+(S.siblingsN-3)+"人",leftSib+bw+4,selfY+bh/2+3);}
   }
   box(selfX,selfY,bw,bh,"被相続人",false,true);
+  var cpx=selfX+bw+28;
   if(sp){
-    var cpx=selfX+bw+28;box(cpx,selfY,bw,bh,"配偶者",true,false);
+    box(cpx,selfY,bw,bh,"配偶者",true,false);
     ctx.strokeStyle="#dc2626";ctx.lineWidth=2;
     ctx.beginPath();ctx.moveTo(selfX+bw,selfY+bh/2-2);ctx.lineTo(cpx,selfY+bh/2-2);ctx.stroke();
     ctx.beginPath();ctx.moveTo(selfX+bw,selfY+bh/2+2);ctx.lineTo(cpx,selfY+bh/2+2);ctx.stroke();
@@ -493,8 +518,16 @@ function drawTree(h){
   var midX=sp?(selfX+bw+cpx)/2:selfX+bw/2;
   if(maxK>0){
     var tw=maxK*bw+(maxK-1)*8,sx2=midX-tw/2;
-    ln(midX,selfY+bh,midX,cy-8);
-    for(var i=0;i<maxK;i++){var kx=sx2+i*(bw+8);box(kx,cy,bw,bh,kids[i],isH1,false);ln(kx+bw/2,cy,midX,cy-8);}
+    var barY=selfY+bh+20;
+    ln(midX,selfY+bh,midX,barY);
+    if(maxK===1){
+      ln(midX,barY,midX,cy);
+      box(sx2,cy,bw,bh,kids[0],isH1,false);
+    }else{
+      var leftK=sx2+bw/2,rightK=sx2+(maxK-1)*(bw+8)+bw/2;
+      ln(leftK,barY,rightK,barY);
+      for(var i=0;i<maxK;i++){var kx=sx2+i*(bw+8);ln(kx+bw/2,barY,kx+bw/2,cy);box(kx,cy,bw,bh,kids[i],isH1,false);}
+    }
     if(kids.length>5){ctx.fillStyle="#6b7280";ctx.font="10px sans-serif";ctx.textAlign="left";ctx.fillText("他"+(kids.length-5)+"人",sx2+maxK*(bw+8),cy+bh/2+3);}
   }
   if(S.outside&&(S.outsideRel+S.outsideNonRel>0)){
