@@ -226,6 +226,20 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div class="asset-total"><div>財産額合計<div class="at-sub">（時価ベース）</div></div><div id="d-total-m">0万円</div></div>
 <div class="asset-total" style="background:#eff6ff;margin-top:4px"><div>相続税評価額合計<div class="at-sub">（税計算ベース）</div></div><div id="d-total-t">0万円</div></div>
 <div class="asset-notes" id="asset-notes"></div>
+
+<!-- 小規模宅地等の特例 -->
+<div id="land-special" style="display:none;margin-top:10px;background:#fffbeb;border:1px solid #fcd34d;border-radius:10px;padding:12px">
+<div style="font-size:13px;font-weight:700;color:#92400e;margin-bottom:8px">小規模宅地等の特例</div>
+<div style="font-size:11px;color:#78716c;margin-bottom:10px">適用要件を満たす場合、土地の評価額を減額できます。詳細な要件は税理士にご確認ください。</div>
+<div id="land-chks"></div>
+<div id="land-result" style="display:none;margin-top:8px;background:#fef3c7;border-radius:8px;padding:8px 10px">
+<div style="display:flex;justify-content:space-between;font-size:12px"><span style="color:#92400e;font-weight:600">特例による評価減額</span><span style="font-weight:700;color:#b45309" id="d-land-reduce"></span></div>
+</div>
+<div style="font-size:10px;color:#92400e;margin-top:6px;line-height:1.5">
+※ 居住用(330㎡/80%減)・事業用(400㎡/80%減)・貸付用(200㎡/50%減)。併用時は面積按分制限あり。<br>
+※ 根拠: 租税特別措置法第69条の4
+</div>
+</div>
 </div>
 </div>
 
@@ -281,7 +295,7 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 </div>
 </div>
 <div class="zero-msg" id="zero-msg" style="display:none"><h3>現時点では相続税は発生しません</h3><p id="d-zero-msg"></p></div>
-<div class="disclaimer"><b>免責事項: </b>本ツールは概算値です。小規模宅地等の特例・2次相続・相続時精算課税等は考慮していません。配偶者の税額軽減は法定相続分での取得を前提に概算しています。正確な試算は税理士にご相談ください。養子の法定相続人算入は実子有=1人/実子無=2人が上限です（特別養子等の例外あり）。</div>
+<div class="disclaimer"><b>免責事項: </b>本ツールは概算値です。2次相続・相続時精算課税等は考慮していません。配偶者の税額軽減は法定相続分での取得を前提に概算しています。小規模宅地等の特例は面積上限と減額率の概算であり、適用要件（居住継続・事業継続等）の充足は別途ご確認ください。正確な試算は税理士にご相談ください。養子の法定相続人算入は実子有=1人/実子無=2人が上限です（特別養子等の例外あり）。</div>
 </div>
 
 <script>
@@ -318,7 +332,10 @@ var S={
   parents:"none",
   siblings:false,siblingsN:0,
   outside:false,outsideRel:0,outsideNonRel:0,
-  giftAmt:110,giftYr:10,addIns:0,tab:0
+  giftAmt:110,giftYr:10,addIns:0,tab:0,
+  landHome:false,landHomeArea:0,
+  landBiz:false,landBizArea:0,
+  landRent:false,landRentArea:0
 };
 ASSETS.forEach(function(a){if(a.id){S[a.id+"M"]=a.m||0;S[a.id+"T"]=a.t||0;}});
 
@@ -389,6 +406,27 @@ function calcTax(taxable,h,applySpRelief){
 
 function fmt(v){if(!v||v===0)return"0円";var a=Math.abs(v);if(a>=1e8)return(v/1e8).toFixed(2)+"億円";if(a>=1e4)return Math.round(v/1e4).toLocaleString()+"万円";return v.toLocaleString()+"円";}
 
+// ═══════════ 小規模宅地等の特例 ═══════════
+function calcLandRelief(){
+  var reduce=0;
+  if(S.landHome&&S.landHomeArea>0&&S.hLT>0){
+    var area=Math.min(S.landHomeArea,330);
+    var ratio=S.landHomeArea>0?area/S.landHomeArea:0;
+    reduce+=Math.round(S.hLT*1e4*ratio*0.8);
+  }
+  if(S.landBiz&&S.landBizArea>0&&S.bLT>0){
+    var area=Math.min(S.landBizArea,400);
+    var ratio=S.landBizArea>0?area/S.landBizArea:0;
+    reduce+=Math.round(S.bLT*1e4*ratio*0.8);
+  }
+  if(S.landRent&&S.landRentArea>0&&S.oLT>0){
+    var area=Math.min(S.landRentArea,200);
+    var ratio=S.landRentArea>0?area/S.landRentArea:0;
+    reduce+=Math.round(S.oLT*1e4*ratio*0.5);
+  }
+  return reduce;
+}
+
 // ═══════════ 計算 ═══════════
 function calc(){
   var h=getHeirs(),nh=h.nh;
@@ -408,7 +446,8 @@ function calc(){
   var othAsset=S.oaT*1e4;
   var debt=S.dtT*1e4;
 
-  var net=realEstate+stocks+deposits+insT+deathT+loanCo+othAsset-debt;
+  var landReduce=calcLandRelief();
+  var net=realEstate+stocks+deposits+insT+deathT+loanCo+othAsset-debt-landReduce;
   var taxable=Math.max(0,net-bd);
   var spOk=(S.spouse==="yes");
   var curR=calcTax(taxable,h,spOk);
@@ -459,7 +498,7 @@ function calc(){
   ].filter(function(x){return x.v>0;});
 
   return{h:h,nh:nh,insEx:insEx,deathEx:deathEx,bd:bd,net:net,taxable:taxable,
-    curTax:curTax,curTaxBefore:curTaxBefore,spRelief:spRelief,
+    curTax:curTax,curTaxBefore:curTaxBefore,spRelief:spRelief,landReduce:landReduce,
     remainIns:remainIns,remainDeath:remainDeath,totalM:totalM,totalT:totalT,
     tGift:tGift,clawback:clawback,effectiveGift:effectiveGift,
     gTax:gTax,gSave:curTax-gTax,effIns:effIns,iTax:iTax,iSave:curTax-iTax,
@@ -753,6 +792,40 @@ function update(){
       "<b>死亡退職金の非課税枠:</b> "+fmt(r.deathEx)+"（500万 × "+r.nh+"人）";
   }else{notes.style.display="none";}
 
+  // 小規模宅地等の特例UI
+  var hasLand=(S.hLT>0||S.bLT>0||S.oLT>0);
+  var lsEl=document.getElementById("land-special");
+  lsEl.style.display=hasLand?"block":"none";
+  if(hasLand){
+    var chks=document.getElementById("land-chks");
+    chks.innerHTML="";
+    var items=[
+      {key:"landHome",areaKey:"landHomeArea",label:"自宅用の土地（特定居住用）",limit:"330㎡・80%減",show:S.hLT>0},
+      {key:"landBiz",areaKey:"landBizArea",label:"事業用の土地（特定事業用）",limit:"400㎡・80%減",show:S.bLT>0},
+      {key:"landRent",areaKey:"landRentArea",label:"その他の土地（貸付事業用）",limit:"200㎡・50%減",show:S.oLT>0}
+    ];
+    items.forEach(function(it){
+      if(!it.show)return;
+      var d=document.createElement("div");
+      d.style.cssText="margin-bottom:8px;padding:6px 8px;background:#fff;border-radius:6px;border:1px solid #e5e7eb";
+      var chk='<label style="display:flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:#374151;cursor:pointer">'+
+        '<input type="checkbox" id="chk-'+it.key+'"'+(S[it.key]?' checked':'')+'>'+it.label+
+        '<span style="font-size:10px;color:#6b7280;font-weight:400">('+it.limit+')</span></label>';
+      var area='<div id="area-'+it.key+'" style="'+(S[it.key]?'':'display:none;')+'margin-top:6px;margin-left:22px">'+
+        '<div style="display:flex;align-items:center;gap:6px"><span style="font-size:11px;color:#6b7280">敷地面積</span>'+
+        '<input type="text" inputmode="numeric" id="in-'+it.areaKey+'" value="'+(S[it.areaKey]||"")+'" style="width:80px;border:1px solid #d1d5db;border-radius:6px;padding:4px 6px;text-align:right;font-size:12px">'+
+        '<span style="font-size:11px;color:#6b7280">㎡</span></div></div>';
+      d.innerHTML=chk+area;
+      chks.appendChild(d);
+      document.getElementById("chk-"+it.key).onchange=function(){S[it.key]=this.checked;update();};
+      var areaIn=document.getElementById("in-"+it.areaKey);
+      areaIn.oninput=function(){S[it.areaKey]=parseFloat(this.value)||0;update();};
+    });
+    var lrEl=document.getElementById("land-result");
+    if(r.landReduce>0){lrEl.style.display="block";document.getElementById("d-land-reduce").textContent="▼"+fmt(r.landReduce);}
+    else{lrEl.style.display="none";}
+  }
+
   document.getElementById("d-total-m").textContent=fmt(r.totalM);
   document.getElementById("d-total-t").textContent=fmt(r.totalT);
 
@@ -771,7 +844,10 @@ function update(){
   }else{spBox.style.display="none";}
   var tb=document.getElementById("tax-box");tb.className=r.curTax>0?"tax-big tax-red":"tax-big tax-green";
   document.getElementById("d-tax").textContent=fmt(r.curTax);
-  document.getElementById("d-tax-note").textContent=r.curTax===0?"基礎控除内のため相続税は発生しません":(r.spRelief>0?"※配偶者の税額軽減適用後の概算値（小規模宅地特例等は未適用）":"※小規模宅地特例等の適用前の概算値");
+  var noteparts=[];
+  if(r.spRelief>0)noteparts.push("配偶者の税額軽減");
+  if(r.landReduce>0)noteparts.push("小規模宅地特例");
+  document.getElementById("d-tax-note").textContent=r.curTax===0?"基礎控除内のため相続税は発生しません":(noteparts.length>0?"※"+noteparts.join("・")+"適用後の概算値":"※概算値です。特例適用で更に減額の可能性あり");
   drawPie(r.breakdown);
 
   document.getElementById("sim-section").style.display=r.curTax>0?"block":"none";
