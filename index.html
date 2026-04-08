@@ -113,6 +113,8 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 .hero-box .hb-val{font-size:34px;font-weight:900;color:#15803d;margin:6px 0}
 .hero-box .hb-save{font-size:15px;font-weight:700;color:#16a34a}
 .hero-box .hb-pct{font-size:12px;color:#6b7280;margin-top:4px}
+.tip-term{border-bottom:1px dotted #93c5fd;cursor:help;position:relative}
+.tip-term:hover::after{content:attr(data-tip);position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;font-size:10px;font-weight:400;padding:6px 10px;border-radius:6px;white-space:nowrap;z-index:10;margin-bottom:4px;max-width:280px;white-space:normal;line-height:1.5}
 .disclaimer{background:#f1f5f9;border-radius:10px;padding:12px;font-size:11px;color:#6b7280;line-height:1.7;margin-top:14px}.disclaimer b{color:#374151}
 .zero-msg{background:#f0fdf4;border:1px solid #86efac;border-radius:14px;padding:18px;text-align:center;margin-top:14px}
 .zero-msg h3{color:#166534;font-size:15px;margin-bottom:6px}.zero-msg p{color:#16a34a;font-size:12px}
@@ -201,11 +203,11 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div class="heir-note" id="heir-note" style="display:none"></div>
 
 <div class="info-bar">
-<div><div class="il">法定相続人</div><div class="iv" id="d-heirs">-</div></div>
-<div><div class="il">相続順位</div><div class="iv" id="d-rank">-</div></div>
-<div><div class="il">基礎控除</div><div class="iv" id="d-basic">-</div></div>
-<div><div class="il">保険非課税枠</div><div class="iv" id="d-insex">-</div></div>
-<div><div class="il">退職金非課税枠</div><div class="iv" id="d-deathex">-</div></div>
+<div><div class="il"><span class="tip-term" data-tip="相続権を持つ方の人数。養子は実子有=1人/無=2人まで算入">法定相続人</span></div><div class="iv" id="d-heirs">-</div></div>
+<div><div class="il"><span class="tip-term" data-tip="第1順位:子、第2順位:父母、第3順位:兄弟姉妹。配偶者は常に相続人">相続順位</span></div><div class="iv" id="d-rank">-</div></div>
+<div><div class="il"><span class="tip-term" data-tip="3,000万円＋600万円×法定相続人数。この額以下なら相続税ゼロ">基礎控除</span></div><div class="iv" id="d-basic">-</div></div>
+<div><div class="il"><span class="tip-term" data-tip="500万円×法定相続人数。死亡保険金のうちこの枠内は非課税">保険非課税枠</span></div><div class="iv" id="d-insex">-</div></div>
+<div><div class="il"><span class="tip-term" data-tip="500万円×法定相続人数。死亡退職金のうちこの枠内は非課税">退職金非課税枠</span></div><div class="iv" id="d-deathex">-</div></div>
 </div>
 </div>
 
@@ -247,12 +249,17 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div>
 <div class="card">
 <div class="card-title"><span class="badge bg-red">!</span>現状の相続税（概算）</div>
+<!-- 計算トレース -->
+<div id="calc-trace" style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:12px">
+<div style="font-weight:700;color:#374151;margin-bottom:8px;font-size:11px">計算の流れ</div>
+<div id="trace-steps"></div>
+</div>
 <div class="stat-grid3">
-<div class="stat-box"><div class="sl">正味の遺産額</div><div class="sv" id="d-net"></div></div>
-<div class="stat-box"><div class="sl">基礎控除額</div><div class="sv" id="d-basic2"></div></div>
-<div class="stat-box"><div class="sl">課税遺産総額</div><div class="sv" id="d-taxable"></div></div>
-<div class="stat-box"><div class="sl">保険非課税残枠</div><div class="sv" id="d-remain-ins"></div></div>
-<div class="stat-box"><div class="sl">退職金非課税残枠</div><div class="sv" id="d-remain-death"></div></div>
+<div class="stat-box"><div class="sl"><span class="tip-term" data-tip="財産総額から非課税枠・債務を差し引いた金額">正味の遺産額</span></div><div class="sv" id="d-net"></div></div>
+<div class="stat-box"><div class="sl"><span class="tip-term" data-tip="3,000万円＋600万円×法定相続人の数">基礎控除額</span></div><div class="sv" id="d-basic2"></div></div>
+<div class="stat-box"><div class="sl"><span class="tip-term" data-tip="正味の遺産額から基礎控除を引いた課税対象額">課税遺産総額</span></div><div class="sv" id="d-taxable"></div></div>
+<div class="stat-box"><div class="sl"><span class="tip-term" data-tip="500万円×法定相続人数。保険金がこの枠内なら非課税">保険非課税残枠</span></div><div class="sv" id="d-remain-ins"></div></div>
+<div class="stat-box"><div class="sl"><span class="tip-term" data-tip="500万円×法定相続人数。退職金がこの枠内なら非課税">退職金非課税残枠</span></div><div class="sv" id="d-remain-death"></div></div>
 <div class="stat-box"><div class="sl">財産額合計(参考)</div><div class="sv" id="d-total-m2"></div></div>
 </div>
 <div id="sp-relief-box" style="display:none;background:#eff6ff;border:1px solid #93c5fd;border-radius:10px;padding:10px 12px;margin-bottom:8px">
@@ -828,6 +835,29 @@ function update(){
 
   document.getElementById("d-total-m").textContent=fmt(r.totalM);
   document.getElementById("d-total-t").textContent=fmt(r.totalT);
+
+  // 計算トレース
+  var ts=document.getElementById("trace-steps");
+  var steps=[];
+  steps.push({l:"相続税評価額合計",v:r.totalT,sign:""});
+  if(r.landReduce>0)steps.push({l:"小規模宅地特例",v:-r.landReduce,sign:"−",color:"#16a34a"});
+  if(r.insEx>0&&S.liT>0)steps.push({l:"保険非課税枠控除",v:-Math.min(S.liT*1e4,r.insEx),sign:"−",color:"#2563eb"});
+  if(r.deathEx>0&&S.dbT>0)steps.push({l:"退職金非課税枠控除",v:-Math.min(S.dbT*1e4,r.deathEx),sign:"−",color:"#2563eb"});
+  if(S.dtT>0)steps.push({l:"債務控除",v:-S.dtT*1e4,sign:"−",color:"#dc2626"});
+  steps.push({l:"正味の遺産額",v:r.net,sign:"＝",bold:true});
+  steps.push({l:"基礎控除（3,000万+600万×"+r.nh+"人）",v:-r.bd,sign:"−",color:"#7c3aed"});
+  steps.push({l:"課税遺産総額",v:r.taxable,sign:"＝",bold:true});
+  if(r.curTaxBefore>0)steps.push({l:"相続税額（速算表）",v:r.curTaxBefore,sign:"→",bold:true});
+  if(r.spRelief>0)steps.push({l:"配偶者の税額軽減",v:-r.spRelief,sign:"−",color:"#16a34a"});
+  steps.push({l:"最終相続税額",v:r.curTax,sign:"＝",bold:true,big:true});
+  ts.innerHTML=steps.map(function(s){
+    var c=s.color||"#374151";
+    var fw=s.bold?"700":"400";
+    var fs=s.big?"14px":"12px";
+    return'<div style="display:flex;justify-content:space-between;align-items:center;padding:3px 0;'+(s.big?'border-top:2px solid #e2e8f0;margin-top:4px;padding-top:6px':'')+'">'+
+      '<span style="color:'+c+';font-weight:'+fw+'">'+s.sign+(s.sign?" ":"")+s.l+'</span>'+
+      '<span style="font-weight:700;font-size:'+fs+';color:'+(s.big?(r.curTax>0?"#b91c1c":"#16a34a"):c)+'">'+fmt(Math.abs(s.v))+'</span></div>';
+  }).join("");
 
   document.getElementById("d-net").textContent=fmt(r.net);
   document.getElementById("d-basic2").textContent=fmt(r.bd);
