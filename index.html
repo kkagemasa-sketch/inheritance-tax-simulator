@@ -186,13 +186,11 @@ input[type=range]{width:100%;accent-color:#1e40af;cursor:pointer}
 <div class="num-row hidden" id="q4-num" style="align-items:center"><span style="font-size:12px;margin-left:26px">人数</span><input type="number" id="q4-input" min="1" max="20" value="1" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
 </div>
 
-<!-- Q4b 代襲相続 -->
+<!-- Q4b 子ごとの生死・代襲 -->
 <div class="q-step hidden" id="q4b">
-<div class="q-label"><span class="q-num" id="q4b-n">-</span>上記の子のうち、既に亡くなった子（代襲相続）はいますか？</div>
-<div class="q-sub">亡くなった子に代わりその子（孫）が相続人になります</div>
-<div class="btn-row" id="q4b-btns"></div>
-<div class="num-row hidden" id="q4b-num" style="align-items:center"><span style="font-size:12px;margin-left:26px">亡くなった子の人数</span><input type="number" id="q4b-input" min="1" max="20" value="1" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
-<div class="num-row hidden" id="q4b-grandnum" style="align-items:center;margin-top:6px"><span style="font-size:12px;margin-left:26px">代襲相続する孫の合計人数</span><input type="number" id="q4b-ginput" min="1" max="20" value="1" style="width:60px;border:1px solid #d1d5db;border-radius:6px;padding:5px 8px;text-align:center;font-size:13px;margin-left:6px"><span style="font-size:12px;margin-left:2px">人</span></div>
+<div class="q-label"><span class="q-num" id="q4b-n">-</span>子どもの生死と代襲相続（孫）</div>
+<div class="q-sub">亡くなった子がいる場合、その子（孫）が代襲相続人になります</div>
+<div id="q4b-list" style="margin-left:26px"></div>
 </div>
 
 <!-- Q5 養子 -->
@@ -497,7 +495,7 @@ var S={
   spouse:"yes",firstMarriage:true,
   spouseChildren:false,spouseChildrenN:0,
   otherChildren:false,otherChildrenN:0,
-  hasDaishuu:false,daishuu:0,daishuu_grandch:0,
+  childDetails:[],// [{dead:false,grandch:0},...] 子ごとの死亡・孫情報
   adopted:false,adoptedN:0,magoAdoptedN:0,
   parents:"none",
   siblings:false,siblingsN:0,halfSibN:0,deadSibN:0,nephewN:0,
@@ -534,10 +532,11 @@ function giftTaxOn(amt,special){
 // ═══════════ 法定相続人判定 ═══════════
 function getHeirs(){
   var sp=(S.spouse==="yes")?1:0;
-  var livingCh=(S.spouseChildren?S.spouseChildrenN:0)+(S.otherChildren?S.otherChildrenN:0);
-  var deadCh=S.hasDaishuu?S.daishuu:0;
-  var grandCh=S.hasDaishuu?S.daishuu_grandch:0;
-  var realCh=livingCh+deadCh; // 実子の総数（代襲含む）
+  var totalChInput=(S.spouseChildren?S.spouseChildrenN:0)+(S.otherChildren?S.otherChildrenN:0);
+  var deadCh=0,grandCh=0;
+  (S.childDetails||[]).forEach(function(d){if(d.dead){deadCh++;grandCh+=d.grandch||0;}});
+  var livingCh=totalChInput-deadCh;
+  var realCh=totalChInput; // 実子の総数（死亡含む）
   var adoptCh=S.adopted?(S.adoptedN+(S.magoAdoptedN||0)):0;
   var magoAdopt=S.adopted?(S.magoAdoptedN||0):0;
   var totalCh=livingCh+grandCh+adoptCh;
@@ -760,14 +759,27 @@ function drawTree(h){
   var sp=(S.spouse==="yes");
   var isH1=h.allCh>0,isH2=!isH1&&h.pa>0,isH3=!isH1&&!isH2&&h.sib>0;
 
-  // 子リスト
+  // 子リスト（構造化: label, dead, grandchildren[]）
   var kids=[];
-  if(S.otherChildren)for(var i=0;i<S.otherChildrenN;i++)kids.push("前の子"+(S.otherChildrenN>1?(i+1):""));
-  if(S.spouseChildren)for(var i=0;i<S.spouseChildrenN;i++)kids.push("子"+(S.spouseChildrenN>1?(i+1):""));
-  if(S.adopted&&S.adoptedN>0)for(var i=0;i<S.adoptedN;i++)kids.push("養子"+(S.adoptedN>1?(i+1):""));
-  if(S.adopted&&S.magoAdoptedN>0)for(var i=0;i<S.magoAdoptedN;i++)kids.push("孫養子"+(S.magoAdoptedN>1?(i+1):""));
-  if(S.hasDaishuu&&S.daishuu_grandch>0)for(var i=0;i<S.daishuu_grandch;i++)kids.push("孫(代襲)"+(S.daishuu_grandch>1?(i+1):""));
+  var cdIdx=0;
+  var otN=S.otherChildren?S.otherChildrenN:0;
+  var spN=S.spouseChildren?S.spouseChildrenN:0;
+  for(var i=0;i<otN;i++){
+    var d=(S.childDetails[cdIdx]||{});
+    var gc=[];if(d.dead)for(var g=0;g<(d.grandch||0);g++)gc.push("孫"+(d.grandch>1?(g+1):""));
+    kids.push({label:"前の子"+(otN>1?(i+1):""),dead:!!d.dead,gc:gc});cdIdx++;
+  }
+  for(var i=0;i<spN;i++){
+    var d=(S.childDetails[cdIdx]||{});
+    var gc=[];if(d.dead)for(var g=0;g<(d.grandch||0);g++)gc.push("孫"+(d.grandch>1?(g+1):""));
+    kids.push({label:"子"+(spN>1?(i+1):""),dead:!!d.dead,gc:gc});cdIdx++;
+  }
+  if(S.adopted&&S.adoptedN>0)for(var i=0;i<S.adoptedN;i++)kids.push({label:"養子"+(S.adoptedN>1?(i+1):""),dead:false,gc:[]});
+  if(S.adopted&&S.magoAdoptedN>0)for(var i=0;i<S.magoAdoptedN;i++)kids.push({label:"孫養子"+(S.magoAdoptedN>1?(i+1):""),dead:false,gc:[]});
   var maxK=Math.min(kids.length,8);
+  // 孫がいるか→4段目が必要
+  var hasGrandch=kids.some(function(k){return k.gc.length>0;});
+  var totalGC=kids.reduce(function(a,k){return a+k.gc.length;},0);
 
   // 兄弟数
   var sibTotal=(S.siblings?S.siblingsN:0)+(S.siblings?S.halfSibN:0)+(S.siblings?S.nephewN:0);
@@ -777,8 +789,8 @@ function drawTree(h){
   // 動的サイズ計算
   var bw=70,bh=30,gap=8,pad=16;
   var hasParents=(S.parents!=="none");
-  var rows=1+(hasParents?1:0)+(maxK>0?1:0);
-  var rowH=bh+30; // 行の高さ（ボックス+バッジ+接続線）
+  var rows=1+(hasParents?1:0)+(maxK>0?1:0)+(hasGrandch?1:0);
+  var rowH=bh+30;
   var H=rows*rowH+40+(S.outside&&(S.outsideRel+S.outsideNonRel>0)?20:0);
 
   // 幅: 中段の要素数で決定
@@ -898,21 +910,58 @@ function drawTree(h){
     box(epx,midY,bw,bh,"前配偶者",false,false,true);
   }
 
-  // ── 子（下段）──
+  // ── 子（下段）+ 孫（4段目）──
   var midXkids=sp?(selfX+bw+cpx)/2:selfX+bw/2;
+  var gcY=botY+rowH; // 孫の段
   if(maxK>0){
     var tw=maxK*bw+(maxK-1)*gap,sx2=midXkids-tw/2;
-    // 左端がはみ出ないよう調整
     if(sx2<pad)sx2=pad;
     var barY=midY+bh+14;
     ln(midXkids,midY+bh,midXkids,barY);
     if(maxK===1){
       ln(midXkids,barY,midXkids,botY);
-      box(sx2,botY,bw,bh,kids[0],isH1,false);
     }else{
       var leftK=sx2+bw/2,rightK=sx2+(maxK-1)*(bw+gap)+bw/2;
       ln(leftK,barY,rightK,barY);
-      for(var i=0;i<maxK;i++){var kx=sx2+i*(bw+gap);ln(kx+bw/2,barY,kx+bw/2,botY);box(kx,botY,bw,bh,kids[i],isH1,false);}
+      for(var i=0;i<maxK;i++)ln(sx2+i*(bw+gap)+bw/2,barY,sx2+i*(bw+gap)+bw/2,botY);
+    }
+    // 各子を描画
+    for(var i=0;i<maxK;i++){
+      var kx=sx2+i*(bw+gap);
+      var k=kids[i];
+      if(k.dead){
+        // 死亡した子: グレーボックス＋×印
+        roundRect(kx,botY,bw,bh,6);
+        ctx.fillStyle="#f1f5f9";ctx.fill();
+        roundRect(kx,botY,bw,bh,6);
+        ctx.strokeStyle="#94a3b8";ctx.lineWidth=1.5;ctx.setLineDash([4,3]);ctx.stroke();ctx.setLineDash([]);
+        ctx.fillStyle="#94a3b8";ctx.font=font;ctx.textAlign="center";ctx.textBaseline="middle";
+        ctx.fillText(k.label,kx+bw/2,botY+bh/2);
+        // ×印
+        ctx.strokeStyle="#dc2626";ctx.lineWidth=2;
+        ctx.beginPath();ctx.moveTo(kx+bw-10,botY+4);ctx.lineTo(kx+bw-4,botY+10);ctx.stroke();
+        ctx.beginPath();ctx.moveTo(kx+bw-4,botY+4);ctx.lineTo(kx+bw-10,botY+10);ctx.stroke();
+        // 「死亡」ラベル
+        ctx.fillStyle="#dc2626";ctx.font="bold 8px sans-serif";ctx.fillText("死亡",kx+bw/2,botY+bh+9);
+        // 孫を描画（4段目）
+        if(k.gc.length>0){
+          var gcBarY=botY+bh+16;
+          ln(kx+bw/2,botY+bh,kx+bw/2,gcBarY);
+          var gcW=k.gc.length*bw+(k.gc.length-1)*gap;
+          var gcStart=kx+bw/2-gcW/2;
+          if(gcStart<pad)gcStart=pad;
+          if(k.gc.length>1){
+            ln(gcStart+bw/2,gcBarY,gcStart+(k.gc.length-1)*(bw+gap)+bw/2,gcBarY);
+          }
+          for(var g=0;g<k.gc.length;g++){
+            var gx=gcStart+g*(bw+gap);
+            ln(gx+bw/2,gcBarY,gx+bw/2,gcY);
+            box(gx,gcY,bw,bh,k.gc[g],isH1,false);
+          }
+        }
+      }else{
+        box(kx,botY,bw,bh,k.label,isH1,false);
+      }
     }
     if(kids.length>8){ctx.fillStyle="#94a3b8";ctx.font="10px sans-serif";ctx.textAlign="left";ctx.fillText("他"+(kids.length-8)+"人",sx2+maxK*(bw+gap),botY+bh/2);}
   }
@@ -1050,27 +1099,38 @@ function buildUI(){
     if(!S.otherChildrenN)S.otherChildrenN=1;
   }else{q4n.classList.add("hidden");}
 
-  // Q4b 代襲相続
-  var hasAnyCh=(S.spouseChildren&&S.spouseChildrenN>0)||(S.otherChildren&&S.otherChildrenN>0);
+  // Q4b 子ごとの生死・代襲
+  var totalChN=(S.spouseChildren?S.spouseChildrenN:0)+(S.otherChildren?S.otherChildrenN:0);
+  var hasAnyCh=totalChN>0;
   var q4b=document.getElementById("q4b");
   if(hasAnyCh){
     q4b.classList.remove("hidden");
     document.getElementById("q4b-n").textContent=spExist?stepN+1:stepN+1;
-    mkBtns(document.getElementById("q4b-btns"),
-      [{v:true,l:"いる"},{v:false,l:"いない"}],
-      S.hasDaishuu,function(v){S.hasDaishuu=v;if(!v){S.daishuu=0;S.daishuu_grandch=0;}buildUI();update();});
-    var q4bn=document.getElementById("q4b-num");
-    var q4bgn=document.getElementById("q4b-grandnum");
-    if(S.hasDaishuu){
-      q4bn.classList.remove("hidden");q4bgn.classList.remove("hidden");
-      var q4bi=document.getElementById("q4b-input");q4bi.value=S.daishuu||1;
-      q4bi.oninput=function(){S.daishuu=Math.max(1,parseInt(this.value)||1);update();};
-      if(!S.daishuu)S.daishuu=1;
-      var q4bgi=document.getElementById("q4b-ginput");q4bgi.value=S.daishuu_grandch||1;
-      q4bgi.oninput=function(){S.daishuu_grandch=Math.max(1,parseInt(this.value)||1);update();};
-      if(!S.daishuu_grandch)S.daishuu_grandch=1;
-    }else{q4bn.classList.add("hidden");q4bgn.classList.add("hidden");}
-  }else{q4b.classList.add("hidden");S.hasDaishuu=false;S.daishuu=0;S.daishuu_grandch=0;}
+    // childDetails配列をtotalChNに合わせる
+    while(S.childDetails.length<totalChN)S.childDetails.push({dead:false,grandch:0});
+    while(S.childDetails.length>totalChN)S.childDetails.pop();
+    var list=document.getElementById("q4b-list");list.innerHTML="";
+    // 子のラベルリスト生成
+    var childLabels=[];
+    if(S.otherChildren)for(var i=0;i<S.otherChildrenN;i++)childLabels.push("前の子"+(S.otherChildrenN>1?(i+1):""));
+    if(S.spouseChildren)for(var i=0;i<S.spouseChildrenN;i++)childLabels.push("子"+(S.spouseChildrenN>1?(i+1):""));
+    for(var ci=0;ci<totalChN;ci++){(function(idx){
+      var d=S.childDetails[idx];
+      var row=document.createElement("div");
+      row.style.cssText="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid #f1f5f9;flex-wrap:wrap";
+      var lbl='<span style="font-size:12px;font-weight:600;min-width:70px">'+childLabels[idx]+'</span>';
+      var deadBtn='<button class="btn'+(d.dead?' on':'')+'" style="font-size:11px;padding:4px 10px" id="cd-dead-'+idx+'">死亡</button>';
+      var aliveBtn='<button class="btn'+(!d.dead?' on':'')+'" style="font-size:11px;padding:4px 10px" id="cd-alive-'+idx+'">生存</button>';
+      var grandInput=d.dead?'<span style="font-size:11px;margin-left:8px">→ 孫</span><input type="number" min="0" max="10" value="'+(d.grandch||0)+'" id="cd-gc-'+idx+'" style="width:50px;border:1px solid #d1d5db;border-radius:6px;padding:3px 6px;text-align:center;font-size:12px;margin-left:4px"><span style="font-size:11px">人が代襲</span>':'';
+      row.innerHTML=lbl+aliveBtn+deadBtn+grandInput;
+      list.appendChild(row);
+      document.getElementById("cd-alive-"+idx).onclick=function(){S.childDetails[idx].dead=false;S.childDetails[idx].grandch=0;buildUI();update();};
+      document.getElementById("cd-dead-"+idx).onclick=function(){S.childDetails[idx].dead=true;if(!S.childDetails[idx].grandch)S.childDetails[idx].grandch=1;buildUI();update();};
+      if(d.dead){
+        document.getElementById("cd-gc-"+idx).oninput=function(){S.childDetails[idx].grandch=Math.max(0,parseInt(this.value)||0);update();};
+      }
+    })(ci);}
+  }else{q4b.classList.add("hidden");S.childDetails=[];}
 
   var q5StepN=spExist?(hasAnyCh?stepN+2:stepN+1):(hasAnyCh?stepN+2:stepN+1);
   var q5=document.getElementById("q5");q5.classList.remove("hidden");
@@ -1334,12 +1394,20 @@ document.getElementById("load-file").onchange=function(e){
 function getHeirList(h){
   var list=[];
   if(S.spouse==="yes")list.push({id:"spouse",label:"配偶者",legalShare:h.spSh,isSpouse:true,hasIruibun:true,is2割:false});
-  // 子（現配偶者の子）
-  if(S.spouseChildren)for(var i=0;i<S.spouseChildrenN;i++)list.push({id:"ch"+(i+1),label:"子"+(S.spouseChildrenN>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:false});
-  // 前配偶者の子
-  if(S.otherChildren)for(var i=0;i<S.otherChildrenN;i++)list.push({id:"och"+(i+1),label:"前配偶者の子"+(S.otherChildrenN>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:false});
-  // 代襲孫
-  if(S.hasDaishuu&&S.daishuu_grandch>0)for(var i=0;i<S.daishuu_grandch;i++)list.push({id:"gc"+(i+1),label:"孫(代襲)"+(S.daishuu_grandch>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:false});
+  // 子（前配偶者→現配偶者の順、childDetailsと一致させる）
+  var cdIdx2=0,otN2=S.otherChildren?S.otherChildrenN:0,spN2=S.spouseChildren?S.spouseChildrenN:0;
+  for(var i=0;i<otN2;i++){
+    var d=(S.childDetails[cdIdx2]||{});
+    if(!d.dead)list.push({id:"och"+(i+1),label:"前の子"+(otN2>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:false});
+    else{for(var g=0;g<(d.grandch||0);g++)list.push({id:"gc_o"+i+"_"+(g+1),label:"孫(前の子"+(i+1)+"の"+(g+1)+")",legalShare:0,hasIruibun:true,is2割:false});}
+    cdIdx2++;
+  }
+  for(var i=0;i<spN2;i++){
+    var d=(S.childDetails[cdIdx2]||{});
+    if(!d.dead)list.push({id:"ch"+(i+1),label:"子"+(spN2>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:false});
+    else{for(var g=0;g<(d.grandch||0);g++)list.push({id:"gc_c"+i+"_"+(g+1),label:"孫(子"+(i+1)+"の"+(g+1)+")",legalShare:0,hasIruibun:true,is2割:false});}
+    cdIdx2++;
+  }
   // 普通養子
   if(S.adopted&&S.adoptedN>0)for(var i=0;i<S.adoptedN;i++)list.push({id:"ad"+(i+1),label:"養子"+(S.adoptedN>1?(i+1):""),legalShare:0,hasIruibun:true,is2割:false});
   // 孫養子（2割加算対象）
