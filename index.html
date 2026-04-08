@@ -635,7 +635,7 @@ function drawTree(h){
   c.width=W*dpr;c.height=H*dpr;c.style.width=W+"px";c.style.height=H+"px";
   var ctx=c.getContext("2d");ctx.scale(dpr,dpr);
   // 背景
-  ctx.fillStyle="#fafbfc";ctx.fillRect(0,0,W,H);
+  ctx.fillStyle="#ffffff";ctx.fillRect(0,0,W,H);
   var bw=76,bh=32,gap=10,sp=(S.spouse==="yes");
   var isH1=h.allCh>0,isH2=!isH1&&h.pa>0,isH3=!isH1&&!isH2&&h.sib>0;
 
@@ -646,42 +646,41 @@ function drawTree(h){
     ctx.lineTo(x,y+r);ctx.quadraticCurveTo(x,y,x+r,y);ctx.closePath();
   }
   function box(x,y,w,ht,lbl,heir,self,ghost){
-    // 影
-    ctx.save();ctx.shadowColor="rgba(0,0,0,0.08)";ctx.shadowBlur=6;ctx.shadowOffsetY=2;
-    roundRect(x,y,w,ht,8);
-    if(ghost){ctx.fillStyle="#fef2f2";ctx.fill();}
-    else if(self){ctx.fillStyle="#1e3a8a";ctx.fill();}
-    else if(heir){ctx.fillStyle="#ecfdf5";ctx.fill();}
-    else{ctx.fillStyle="#fff";ctx.fill();}
-    ctx.restore();
-    // 枠線
-    roundRect(x,y,w,ht,8);
-    if(ghost){ctx.setLineDash([4,3]);ctx.strokeStyle="#f87171";ctx.lineWidth=1.5;ctx.stroke();ctx.setLineDash([]);}
-    else if(self){/* no border */}
-    else if(heir){ctx.strokeStyle="#22c55e";ctx.lineWidth=2;ctx.stroke();}
-    else{ctx.strokeStyle="#e2e8f0";ctx.lineWidth=1;ctx.stroke();}
-    // テキスト
-    ctx.fillStyle=ghost?"#b91c1c":self?"#fff":heir?"#166534":"#475569";
-    ctx.font=(self?"bold ":"600 ")+"12px -apple-system,'Hiragino Sans',sans-serif";
+    roundRect(x,y,w,ht,6);
+    // 塗り
+    if(ghost)ctx.fillStyle="#fff5f5";
+    else if(self)ctx.fillStyle="#1e3a8a";
+    else if(heir)ctx.fillStyle="#f0fdf4";
+    else ctx.fillStyle="#ffffff";
+    ctx.fill();
+    // 枠線（太めでくっきり）
+    roundRect(x,y,w,ht,6);
+    if(ghost){ctx.setLineDash([5,3]);ctx.strokeStyle="#ef4444";ctx.lineWidth=2;ctx.stroke();ctx.setLineDash([]);}
+    else if(self){ctx.strokeStyle="#1e3a8a";ctx.lineWidth=2;ctx.stroke();}
+    else if(heir){ctx.strokeStyle="#16a34a";ctx.lineWidth=2.5;ctx.stroke();}
+    else{ctx.strokeStyle="#94a3b8";ctx.lineWidth=1.5;ctx.stroke();}
+    // テキスト（太字・大きめ）
+    ctx.fillStyle=ghost?"#dc2626":self?"#ffffff":heir?"#15803d":"#1e293b";
+    ctx.font="bold 13px -apple-system,'Hiragino Sans',sans-serif";
     ctx.textAlign="center";ctx.textBaseline="middle";
     ctx.fillText(lbl,x+w/2,y+ht/2);
     // 相続人バッジ
     if(heir&&!self&&!ghost){
-      var bx=x+w/2,by=y+ht+2;
-      ctx.fillStyle="#22c55e";
-      roundRect(bx-16,by,32,14,4);ctx.fill();
-      ctx.fillStyle="#fff";ctx.font="bold 9px sans-serif";ctx.fillText("相続人",bx,by+7);
+      var bx=x+w/2,by=y+ht+3;
+      ctx.fillStyle="#16a34a";
+      roundRect(bx-18,by,36,15,4);ctx.fill();
+      ctx.fillStyle="#fff";ctx.font="bold 10px sans-serif";ctx.fillText("相続人",bx,by+8);
     }
   }
-  function ln(x1,y1,x2,y2,col){
+  function ln(x1,y1,x2,y2){
     ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);
-    ctx.strokeStyle=col||"#cbd5e1";ctx.lineWidth=1.5;ctx.stroke();
+    ctx.strokeStyle="#64748b";ctx.lineWidth=2;ctx.stroke();
   }
   function marriage(x1,x2,y){
     var my=y+bh/2;
-    ctx.strokeStyle="#e11d48";ctx.lineWidth=2;
-    ctx.beginPath();ctx.moveTo(x1,my-2.5);ctx.lineTo(x2,my-2.5);ctx.stroke();
-    ctx.beginPath();ctx.moveTo(x1,my+2.5);ctx.lineTo(x2,my+2.5);ctx.stroke();
+    ctx.strokeStyle="#dc2626";ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.moveTo(x1,my-3);ctx.lineTo(x2,my-3);ctx.stroke();
+    ctx.beginPath();ctx.moveTo(x1,my+3);ctx.lineTo(x2,my+3);ctx.stroke();
   }
 
   var selfX=W/2-bw/2,selfY=120;
